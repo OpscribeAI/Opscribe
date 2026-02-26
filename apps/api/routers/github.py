@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session, select
 import httpx
@@ -10,6 +10,7 @@ from apps.api.database import get_session
 from apps.api.models import Client, ConnectedRepository
 from apps.api.infrastructure.github.security import encrypt_token, decrypt_token
 from apps.api.infrastructure.github.client import GitHubClient
+from apps.api.infrastructure.repo.walker import RepositoryWalker
 
 router = APIRouter(
     prefix="/github",
@@ -133,8 +134,25 @@ async def connect_repository(request: ConnectRepoRequest, session: Session = Dep
     return {"status": "success", "repository_id": repo.id}
 
 
+async def process_repository_ingestion(repo_url: str, branch: str, encrypted_token: str):
+    """Background task to clone and walk the repository."""
+    print(f"Starting ingestion process for {repo_url} on branch {branch}...")
+    try:
+        plain_token = decrypt_token(encrypted_token)
+        walker = RepositoryWalker(repo_url=repo_url, branch=branch, access_token=plain_token)
+        file_set = await walker.clone_and_walk()
+        
+        print(f"[{repo_url}] Walk successful.")
+        print(f"   => Found {len(file_set.tier_1_files)} Tier 1 files.")
+        print(f"   => Found {len(file_set.tier_2_files)} Tier 2 files.")
+        # Future: Pass this file_set to the parsers down the pipeline
+        
+    except Exception as e:
+        print(f"[{repo_url}] Background ingestion failed: {str(e)}")
+
+
 @router.post("/webhook")
-async def github_webhook(request: Request, session: Session = Depends(get_session)):
+async def github_webhook(request: Request, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
     """Receives GitHub push events to trigger re-ingestion."""
     
     event = request.headers.get("X-GitHub-Event")
@@ -155,7 +173,13 @@ async def github_webhook(request: Request, session: Session = Depends(get_sessio
         if ref == f"refs/heads/{connected.default_branch}":
             connected.ingestion_status = "pending"
             session.add(connected)
-            print(f"Triggering background ingestion for {connected.repo_url}")
+            print(f"Scheduling background ingestion for {connected.repo_url}")
+            background_tasks.add_task(
+                process_repository_ingestion, 
+                repo_url=connected.repo_url, 
+                branch=connected.default_branch, 
+                encrypted_token=connected.encrypted_access_token
+            )
 
     session.commit()
     return {"status": "success", "message": "Webhook processed"}

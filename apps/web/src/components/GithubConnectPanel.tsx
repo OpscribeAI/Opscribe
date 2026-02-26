@@ -22,7 +22,6 @@ export default function GithubConnectPanel() {
         if (params.get("github_connected") === "true") {
             setIsConnected(true);
             fetchRepositories();
-            // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }, []);
