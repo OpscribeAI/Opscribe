@@ -33,10 +33,10 @@ class Graph(SQLModel, table=True):
     settings: Dict[str, Any] = Field(default={}, sa_column=Column(JSONB)) # layout defaults, visibility flags
 
     client: Client = Relationship(back_populates="graphs")
-    node_types: List["NodeType"] = Relationship(back_populates="graph")
-    edge_types: List["EdgeType"] = Relationship(back_populates="graph")
-    nodes: List["Node"] = Relationship(back_populates="graph")
-    edges: List["Edge"] = Relationship(back_populates="graph")
+    node_types: List["NodeType"] = Relationship(back_populates="graph", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    edge_types: List["EdgeType"] = Relationship(back_populates="graph", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    nodes: List["Node"] = Relationship(back_populates="graph", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    edges: List["Edge"] = Relationship(back_populates="graph", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 
 class NodeType(SQLModel, table=True):
