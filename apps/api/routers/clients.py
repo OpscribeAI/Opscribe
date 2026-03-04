@@ -85,3 +85,13 @@ def list_client_graphs(client_id: UUID, session: Session = Depends(get_session))
         
     graphs = session.exec(select(Graph).where(Graph.client_id == client_id).order_by(Graph.updated_at.desc())).all()
     return graphs
+
+@router.delete("/{client_id}")
+def delete_client(client_id: UUID, session: Session = Depends(get_session)):
+    """Delete a client and all associated graphs, nodes, edges, and types."""
+    client = session.get(Client, client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    session.delete(client)
+    session.commit()
+    return {"ok": True}
