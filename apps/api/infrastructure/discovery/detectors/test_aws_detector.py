@@ -790,6 +790,7 @@ class TestRelationshipDetection:
 class TestFullDiscoveryWorkflow:
     """Integration tests for the full discovery workflow"""
     
+    @pytest.mark.asyncio
     @patch('boto3.client')
     async def test_full_discovery_workflow(self, mock_boto_client, aws_detector):
         """Test discovering and integrating multiple service types"""
