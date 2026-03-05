@@ -6,12 +6,13 @@ from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
 
 class KnowledgeBaseItem(SQLModel, table=True):
+    model_config = {"arbitrary_types_allowed": True}
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     tenant_id: UUID = Field(index=True)
     graph_id: UUID = Field(index=True)
     entity_id: UUID = Field(index=True)  # Links to Node.id or Edge.id
     content: str  # The text chunk
-    embedding: List[float] = Field(sa_column=Column(Vector(768)))  # Gemini embeddings dimensions
+    embedding: Vector = Field(sa_column=Column(Vector(384)))  # Gemini embeddings dimensions
     metadata_: Dict[str, Any] = Field(default={}, sa_column=Column("metadata", JSONB))
     created_at: str
     updated_at: str

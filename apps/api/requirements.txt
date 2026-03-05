@@ -5,6 +5,9 @@ psycopg2-binary
 pgvector
 langchain
 langchain-google-genai
+langchain-huggingface
+langchain-groq
+sentence-transformers
 python-dotenv
 httpx
 pydantic-settings

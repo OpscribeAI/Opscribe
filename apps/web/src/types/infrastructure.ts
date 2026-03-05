@@ -127,7 +127,11 @@ export interface InfrastructureDesign {
 // Props for the infrastructure dashboard
 export interface InfrastructureDashboardProps {
   designs: InfrastructureDesign[];
+  loading?: boolean;
+  error?: string | null;
+  createPending?: boolean;
   onCreateNew: () => void;
   onOpenDesign: (id: string) => void;
   onDeleteDesign: (id: string) => void;
+  onOpenRag: () => void;
 }

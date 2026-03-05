@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import InfrastructureDashboard from "./components/InfrastructureDashboard";
 import InfrastructureDesigner from "./components/InfrastructureDesigner";
+import RAGChat from "./components/RAGChat";
 import { useInfrastructureDesigns } from "./hooks/useInfrastructureDesigns";
 import type { Node, Edge } from "reactflow";
 import type { InfrastructureNodeData } from "./types/infrastructure";
@@ -17,6 +18,7 @@ function App() {
     getDesign,
   } = useInfrastructureDesigns();
   const [activeDesignId, setActiveDesignId] = useState<string | null>(null);
+  const [showRag, setShowRag] = useState(false);
   const [createPending, setCreatePending] = useState(false);
 
   const handleCreateNew = useCallback(() => {
@@ -46,6 +48,10 @@ function App() {
 
   const activeDesign = activeDesignId ? getDesign(activeDesignId) : null;
 
+  if (showRag) {
+    return <RAGChat onBack={() => setShowRag(false)} />;
+  }
+
   if (activeDesignId) {
     return (
       <InfrastructureDesigner
@@ -64,6 +70,7 @@ function App() {
       onCreateNew={handleCreateNew}
       onOpenDesign={handleOpenDesign}
       onDeleteDesign={deleteDesign}
+      onOpenRag={() => setShowRag(true)}
     />
   );
 }

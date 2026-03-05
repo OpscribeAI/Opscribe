@@ -22,8 +22,11 @@ class RagQueryRequest(BaseModel):
     query: str
     limit: int = 5
 
+from apps.api.infrastructure.rag.chat import ChatService
+
 class RagQueryResponse(BaseModel):
     items: List[Dict[str, Any]]
+    answer: str
 
 # --- Endpoints ---
 
@@ -46,10 +49,10 @@ async def ingest_repo(request: RepoIngestRequest, session: Session = Depends(get
 @router.post("/query", response_model=RagQueryResponse)
 async def query_rag(request: RagQueryRequest, session: Session = Depends(get_session)):
     """
-    Queries the vector database for relevant chunks related to a query.
-    Returns the raw chunks for now.
+    Queries the vector database for relevant chunks and generates an answer using Groq.
     """
     try:
+        # 1. Retrieve
         retriever = GraphRetriever(session)
         results = retriever.retrieve(
             query=request.query, 
@@ -57,16 +60,21 @@ async def query_rag(request: RagQueryRequest, session: Session = Depends(get_ses
             limit=request.limit
         )
         
-        # Format output
+        # 2. Format Chunks
         formatted_results = []
+        context_chunks = []
         for item in results:
             formatted_results.append({
                 "id": str(item.id),
                 "content": item.content,
                 "metadata": item.metadata_,
-                # Don't return the raw large vector array back to the user usually, just the text
             })
+            context_chunks.append(item.content)
             
-        return {"items": formatted_results}
+        # 3. Generate Answer
+        chat_service = ChatService()
+        answer = chat_service.generate_answer(request.query, context_chunks)
+
+        return {"items": formatted_results, "answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
