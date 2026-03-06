@@ -76,6 +76,7 @@ Unit tests verify individual detection methods in isolation using **mocked boto3
   - Tests: `TestEC2EBSRelationships`, `TestLambdaVPCRelationships`, `TestCloudFrontS3Relationships`
 
 **Running unit tests:**
+
 ```bash
 # All unit tests
 pytest tests/unit/discovery/ -v
@@ -109,6 +110,7 @@ Integration tests verify the detector against **realistic mock infrastructure** 
   - Coverage: Multi-AZ deployments, distributed resources, relationship detection
 
 **Running integration tests:**
+
 ```bash
 # All integration tests
 pytest tests/integration/discovery/ -v
@@ -123,16 +125,20 @@ pytest tests/integration/discovery/test_detector_with_mock_cluster.py::TestDetec
 ### Test Fixtures
 
 **Root fixtures** (`tests/conftest.py`):
+
 - `aws_detector`: Basic AWSDetector instance for unit tests
 
 **Unit test fixtures** (`tests/unit/discovery/conftest.py`):
+
 - `aws_detector`: AWSDetector instance
 
 **Integration test fixtures** (`tests/integration/discovery/conftest.py`):
+
 - `mock_cluster`: MockAWSCluster instance for realistic infrastructure
 - `mocked_aws_detector`: Fully mocked AWSDetector with boto3 routing to mock cluster data
 
 **Mock Infrastructure** (`tests/fixtures/mock_aws_cluster.py`):
+
 - `MockAWSCluster`: Factory creating realistic mock AWS infrastructure
   - Includes: VPC, 2 subnets (multi-AZ), 2 EC2 instances, RDS, S3, SQS
   - All resources properly tagged for testing consistency
@@ -141,21 +147,25 @@ pytest tests/integration/discovery/test_detector_with_mock_cluster.py::TestDetec
 ## Running Tests
 
 ### All tests
+
 ```bash
 pytest tests/ -v
 ```
 
 ### Unit tests only
+
 ```bash
 pytest tests/unit/ -v
 ```
 
 ### Integration tests only
+
 ```bash
 pytest tests/integration/ -v
 ```
 
 ### By service category
+
 ```bash
 pytest tests/unit/discovery/test_aws_detector_compute.py -v
 pytest tests/unit/discovery/test_aws_detector_storage.py -v
@@ -163,11 +173,13 @@ pytest tests/unit/discovery/test_aws_detector_database.py -v
 ```
 
 ### With coverage report
+
 ```bash
 pytest tests/ --cov=apps/api/infrastructure/discovery --cov-report=html
 ```
 
 ### Quick run (parallel)
+
 ```bash
 pytest tests/ -n auto
 ```
@@ -182,20 +194,21 @@ pytest tests/ -n auto
 
 ### Coverage by Service Category
 
-| Category | Services | Tests |
-|----------|----------|-------|
-| Compute | EC2, Lambda, ECS, EKS | 15+ |
-| Storage | S3, EBS, EFS, FSx | 15+ |
-| Database | RDS, DynamoDB, Redshift | 12+ |
-| Networking | VPC, ELB, CloudFront, DirectConnect | 15+ |
-| Security | IAM, KMS, Secrets Manager, Directory Service | 15+ |
-| Observability | CloudWatch, CloudTrail, Systems Manager | 12+ |
-| Integration | SQS, SNS, EventBridge, API Gateway | 15+ |
-| Relationships | EC2↔EBS, Lambda↔VPC, CloudFront↔S3 | 8+ |
+| Category      | Services                                     | Tests |
+| ------------- | -------------------------------------------- | ----- |
+| Compute       | EC2, Lambda, ECS, EKS                        | 15+   |
+| Storage       | S3, EBS, EFS, FSx                            | 15+   |
+| Database      | RDS, DynamoDB, Redshift                      | 12+   |
+| Networking    | VPC, ELB, CloudFront, DirectConnect          | 15+   |
+| Security      | IAM, KMS, Secrets Manager, Directory Service | 15+   |
+| Observability | CloudWatch, CloudTrail, Systems Manager      | 12+   |
+| Integration   | SQS, SNS, EventBridge, API Gateway           | 15+   |
+| Relationships | EC2↔EBS, Lambda↔VPC, CloudFront↔S3           | 8+    |
 
 ## Writing New Tests
 
 ### Unit Test Template
+
 ```python
 """Tests for a specific AWS service."""
 
@@ -206,19 +219,19 @@ from infrastructure.discovery.detectors.aws import AWSDetector
 
 class TestServiceDiscovery:
     """Test ServiceName discovery"""
-    
+
     @patch('boto3.client')
     def test_discover_resource(self, mock_boto_client, aws_detector):
         """Test resource discovery"""
         service_mock = MagicMock()
         mock_boto_client.return_value = service_mock
-        
+
         # Setup mock response
         service_mock.list_resources.return_value = {...}
-        
+
         # Call detector method
         nodes = aws_detector._discover_service()
-        
+
         # Assertions
         assert len(nodes) == 1
         assert nodes[0].key == "service:resource-id"
@@ -226,6 +239,7 @@ class TestServiceDiscovery:
 ```
 
 ### Integration Test Template
+
 ```python
 """Tests for detector with mock infrastructure."""
 
@@ -234,17 +248,17 @@ import pytest
 
 class TestServiceIntegration:
     """Test service discovery with mock cluster"""
-    
+
     @pytest.mark.asyncio
     async def test_detector_finds_resource(self, mocked_aws_detector):
         """Test resource discovery"""
         detector, mock_cluster = mocked_aws_detector
-        
+
         result = await detector.discover()
-        
+
         # Find specific nodes
         nodes = [n for n in result.nodes if n.properties.get("service") == "Service"]
-        
+
         # Assertions
         assert len(nodes) > 0
         assert nodes[0].key == "service:resource-id"

@@ -21,13 +21,13 @@ class MockAWSCluster:
         # Ensure unique subnet IDs
         self.subnet_ids = [
             f"subnet-{self._generate_id('subnet-a')}",
-            f"subnet-{self._generate_id('subnet-b')}"
+            f"subnet-{self._generate_id('subnet-b')}",
         ]
         self.sg_id = f"sg-{self._generate_id('sg')}"
         # Ensure unique EC2 instance IDs
         self.ec2_instance_ids = [
             f"i-{self._generate_id('ec2-instance-0')}",
-            f"i-{self._generate_id('ec2-instance-1')}"
+            f"i-{self._generate_id('ec2-instance-1')}",
         ]
         self.rds_instance_id = f"{service_name}-db"
         self.s3_bucket_name = f"{service_name}-terraform-state"
@@ -158,7 +158,10 @@ class MockAWSCluster:
                 "VpcId": self.vpc_id,
                 "SubnetGroupStatus": "Complete",
                 "Subnets": [
-                    {"SubnetIdentifier": sid, "SubnetAvailabilityZone": {"Name": f"{self.region}a"}}
+                    {
+                        "SubnetIdentifier": sid,
+                        "SubnetAvailabilityZone": {"Name": f"{self.region}a"},
+                    }
                     for sid in self.subnet_ids
                 ],
             },

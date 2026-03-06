@@ -38,7 +38,9 @@ def mocked_aws_detector(mock_cluster):
             """Route to the correct mock service"""
             if service == "ec2":
                 ec2_client = MagicMock()
-                ec2_client.describe_instances.return_value = mock_cluster.describe_instances_response()
+                ec2_client.describe_instances.return_value = (
+                    mock_cluster.describe_instances_response()
+                )
                 ec2_client.describe_volumes.return_value = {"Volumes": []}
                 ec2_client.describe_vpcs.return_value = {"Vpcs": [mock_cluster.vpc()]}
                 ec2_client.describe_load_balancers.return_value = {"LoadBalancers": []}
@@ -46,19 +48,27 @@ def mocked_aws_detector(mock_cluster):
 
             elif service == "rds":
                 rds_client = MagicMock()
-                rds_client.describe_db_instances.return_value = mock_cluster.describe_db_instances_response()
+                rds_client.describe_db_instances.return_value = (
+                    mock_cluster.describe_db_instances_response()
+                )
                 rds_client.describe_db_clusters.return_value = {"DBClusters": []}
                 return rds_client
 
             elif service == "s3":
                 s3_client = MagicMock()
-                s3_client.list_buckets.return_value = mock_cluster.list_buckets_response()
-                s3_client.get_bucket_tagging.return_value = mock_cluster.get_bucket_tagging_response()
+                s3_client.list_buckets.return_value = (
+                    mock_cluster.list_buckets_response()
+                )
+                s3_client.get_bucket_tagging.return_value = (
+                    mock_cluster.get_bucket_tagging_response()
+                )
                 return s3_client
 
             elif service == "sqs":
                 sqs_client = MagicMock()
-                sqs_client.list_queues.return_value = mock_cluster.list_queues_response()
+                sqs_client.list_queues.return_value = (
+                    mock_cluster.list_queues_response()
+                )
                 return sqs_client
 
             elif service == "lambda":
@@ -100,12 +110,16 @@ def mocked_aws_detector(mock_cluster):
 
             elif service == "elbv2":
                 elbv2_client = MagicMock()
-                elbv2_client.describe_load_balancers.return_value = {"LoadBalancers": []}
+                elbv2_client.describe_load_balancers.return_value = {
+                    "LoadBalancers": []
+                }
                 return elbv2_client
 
             elif service == "cloudfront":
                 cf_client = MagicMock()
-                cf_client.list_distributions.return_value = {"DistributionList": {"Items": []}}
+                cf_client.list_distributions.return_value = {
+                    "DistributionList": {"Items": []}
+                }
                 return cf_client
 
             elif service == "directconnect":
@@ -130,7 +144,9 @@ def mocked_aws_detector(mock_cluster):
 
             elif service == "ds":
                 ds_client = MagicMock()
-                ds_client.describe_directories.return_value = {"DirectoryDescriptions": []}
+                ds_client.describe_directories.return_value = {
+                    "DirectoryDescriptions": []
+                }
                 return ds_client
 
             elif service == "logs":
