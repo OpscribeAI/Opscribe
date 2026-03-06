@@ -326,6 +326,16 @@ class AWSDetector(BaseDetector):
 
             for bucket in response.get("Buckets", []):
                 bucket_name = bucket["Name"]
+                tags = []
+                
+                # Try to fetch bucket tags
+                try:
+                    tags_response = s3.get_bucket_tagging(Bucket=bucket_name)
+                    tags = tags_response.get("TagSet", [])
+                except ClientError:
+                    # Tags might not exist for some buckets
+                    pass
+                
                 nodes.append(
                     DiscoveryNode(
                         key=f"s3:{bucket_name}",
@@ -339,6 +349,7 @@ class AWSDetector(BaseDetector):
                                 if bucket.get("CreationDate")
                                 else None
                             ),
+                            "tags": tags,
                         },
                         source_metadata={"arn": f"arn:aws:s3:::{bucket_name}"},
                     )
