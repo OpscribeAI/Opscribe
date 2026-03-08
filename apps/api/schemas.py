@@ -16,6 +16,39 @@ class ClientRead(ClientBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    sso_domain: Optional[str] = None
+    sso_enabled: bool = False
+    sso_provider_id: Optional[str] = None
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class LoginResponse(BaseModel):
+    client: ClientRead
+    token: Token
+
+# User Schemas
+class UserBase(BaseModel):
+    email: str
+    full_name: str
+
+class UserCreate(UserBase):
+    client_id: UUID
+
+class UserRead(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    client_id: UUID
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+class AccountSetupRequest(BaseModel):
+    client_name: str
+    user_email: str
+    user_full_name: str
+    sso_domain: Optional[str] = None
 
 # Graph Schemas
 class GraphBase(BaseModel):

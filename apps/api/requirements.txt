@@ -9,3 +9,7 @@ python-dotenv
 httpx
 pydantic-settings
 alembic
+authlib
+python-jose[cryptography]
+passlib[bcrypt]
+itsdangerous

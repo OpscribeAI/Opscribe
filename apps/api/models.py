@@ -15,12 +15,31 @@ class Client(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now, sa_column_kwargs={"onupdate": utc_now})
     metadata_: Dict[str, Any] = Field(default={}, sa_column=Column("metadata", JSONB))
+    
+    # SSO and Auth fields
+    sso_domain: Optional[str] = Field(default=None, index=True)
+    sso_enabled: bool = Field(default=False)
+    sso_provider_id: Optional[str] = Field(default=None) # e.g. Auth0 connection ID or similar
 
     graphs: List["Graph"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     node_types: List["NodeType"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     edge_types: List["EdgeType"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     nodes: List["Node"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     edges: List["Edge"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    users: List["User"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+
+class User(SQLModel, table=True):
+    __tablename__ = "op_user"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    email: str = Field(index=True, unique=True)
+    full_name: str
+    client_id: UUID = Field(foreign_key="client.id", ondelete="CASCADE")
+    is_active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now, sa_column_kwargs={"onupdate": utc_now})
+
+    client: Client = Relationship(back_populates="users")
 
 
 class Graph(SQLModel, table=True):

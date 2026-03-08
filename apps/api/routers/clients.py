@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from apps.api.database import get_session
 from apps.api.models import Client, Graph
-from apps.api import schemas
+from apps.api import schemas, auth
 
 # Cookie and header used by nginx + frontend for anonymous client identity
 ANON_COOKIE_NAME = "anonymous_client_id"
@@ -77,11 +77,14 @@ def read_client(client_id: UUID, session: Session = Depends(get_session)):
 
 
 @router.get("/{client_id}/graphs", response_model=List[schemas.GraphRead])
-def list_client_graphs(client_id: UUID, session: Session = Depends(get_session)):
+def list_client_graphs(
+    client_id: UUID, 
+    session: Session = Depends(get_session),
+    current_client: Client = Depends(auth.get_current_client)
+):
     """List all infrastructure designs (graphs) for a client. Use this for the dashboard."""
-    client = session.get(Client, client_id)
-    if not client:
-        raise HTTPException(status_code=404, detail="Client not found")
+    if str(current_client.id) != str(client_id):
+        raise HTTPException(status_code=403, detail="Not authorized to access items for this client")
         
     graphs = session.exec(select(Graph).where(Graph.client_id == client_id).order_by(Graph.updated_at.desc())).all()
     return graphs

@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from apps.api.database import create_db_and_tables
-from apps.api.routers import clients, graphs, nodes, edges
+from apps.api.routers import clients, graphs, nodes, edges, auth
+from starlette.middleware.sessions import SessionMiddleware
+import os
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,6 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Session middleware required by Authlib for SSO
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("AUTH_SECRET_KEY", "your-secret-key-for-jwt-signing"))
+
+app.include_router(auth.router)
 app.include_router(clients.router)
 app.include_router(graphs.router)
 app.include_router(nodes.router)
