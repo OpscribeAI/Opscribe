@@ -2,24 +2,24 @@ import React, { useState } from "react";
 import { Send, Download, Loader2, Bot, User, Database } from "lucide-react";
 import { api } from "../api/client";
 
-export default function RAGChat({ onBack }: { onBack: () => void }) {
-    const [repoUrl, setRepoUrl] = useState("https://github.com/rohanprofessional-1/Opscribe");
+export default function RAGChat({ onBack, defaultGraphId = "" }: { onBack: () => void, defaultGraphId?: string }) {
+    const [graphId, setGraphId] = useState(defaultGraphId || "ae75d47b-54ba-4d96-9cc1-6dfcbb641f92"); // Use mock ID as default for convenience
     const [ingesting, setIngesting] = useState(false);
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [messages, setMessages] = useState<Array<{ role: "user" | "bot"; content: string; metadata?: any }>>([
-        { role: "bot", content: "Hello! I can answer questions about repositories you've ingested. Use the input below to ingest a new repo or ask me something!" }
+        { role: "bot", content: "Hello! I can answer questions about architecture graphs you've ingested. Use the input below to ingest a graph ID or ask me something!" }
     ]);
     const [status, setStatus] = useState<string | null>(null);
 
     const handleIngest = async () => {
         setIngesting(true);
-        setStatus("Cloning and embedding repository...");
+        setStatus("Reading architecture graph into vector database...");
         try {
-            const res = await api.ingestRepo("00000000-0000-0000-0000-000000000000", repoUrl);
-            setStatus(`Success! Ingested ${res.chunks_ingested} chunks.`);
+            const res = await api.ingestGraph(graphId);
+            setStatus(`Success! Ingested ${res.entities_ingested} nodes/edges.`);
         } catch (e: any) {
-            setStatus(`Error: ${e.message}`);
+            setStatus(`Error: ${e?.message || e}`);
         } finally {
             setIngesting(false);
         }
@@ -35,7 +35,7 @@ export default function RAGChat({ onBack }: { onBack: () => void }) {
         setLoading(true);
 
         try {
-            const res = await api.queryRag("00000000-0000-0000-0000-000000000000", userMsg);
+            const res = await api.queryRag("ab616c5a-ece1-4f93-9f3a-767f6aa52e9e", userMsg, graphId);
 
             const botMsg = {
                 role: "bot" as const,
@@ -45,7 +45,7 @@ export default function RAGChat({ onBack }: { onBack: () => void }) {
 
             setMessages(prev => [...prev, botMsg]);
         } catch (e: any) {
-            setMessages(prev => [...prev, { role: "bot", content: `Error: ${e.message}` }]);
+            setMessages(prev => [...prev, { role: "bot", content: `Error: ${e?.message || e}` }]);
         } finally {
             setLoading(false);
         }
@@ -57,16 +57,16 @@ export default function RAGChat({ onBack }: { onBack: () => void }) {
                 <div className="flex items-center gap-3">
                     <button onClick={onBack} className="text-gray-400 hover:text-white text-sm">← Back</button>
                     <h1 className="text-xl font-bold flex items-center gap-2">
-                        <Bot className="text-blue-400" /> Repository Knowledge Base
+                        <Bot className="text-blue-400" /> Infrastructure Knowledge Base
                     </h1>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2">
                         <input
-                            value={repoUrl}
-                            onChange={(e) => setRepoUrl(e.target.value)}
-                            placeholder="GitHub URL"
-                            className="bg-transparent text-sm border-none focus:outline-none w-64"
+                            value={graphId}
+                            onChange={(e) => setGraphId(e.target.value)}
+                            placeholder="Graph ID"
+                            className="bg-transparent text-sm border-none focus:outline-none w-80 font-mono text-xs"
                         />
                         <button
                             onClick={handleIngest}
@@ -130,7 +130,7 @@ export default function RAGChat({ onBack }: { onBack: () => void }) {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                        placeholder="Ask a question about the repository..."
+                        placeholder="Ask a question about your architecture graph..."
                     />
                     <button
                         type="submit"

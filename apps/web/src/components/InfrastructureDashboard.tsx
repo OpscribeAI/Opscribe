@@ -5,8 +5,9 @@
  * It also allows the user to open a design and delete a design.
  */
 
-import { Plus, Network, Calendar, Trash2, Database } from "lucide-react";
+import { Plus, Network, Calendar, Trash2, Database, Copy, Check } from "lucide-react";
 import type { InfrastructureDashboardProps } from "../types/infrastructure";
+import { useState } from "react";
 
 export default function InfrastructureDashboard({
   designs,
@@ -25,6 +26,15 @@ export default function InfrastructureDashboard({
     if (diff < 86400000) return "Today";
     if (diff < 172800000) return "Yesterday";
     return d.toLocaleDateString();
+  };
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyId = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -101,6 +111,20 @@ export default function InfrastructureDashboard({
                     <h3 className="mt-4 font-medium text-white truncate">
                       {design.name}
                     </h3>
+                    <div
+                      className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors cursor-copy"
+                      onClick={(e) => handleCopyId(e, design.id)}
+                      title="Copy Graph ID"
+                    >
+                      {copiedId === design.id ? (
+                        <Check className="w-3 h-3 text-green-400" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                      <span className="font-mono text-[10px] truncate max-w-[120px]">
+                        {design.id}
+                      </span>
+                    </div>
                     <div className="mt-auto pt-4 flex items-center gap-2 text-xs text-gray-500">
                       <Calendar className="w-3.5 h-3.5" />
                       {formatDate(design.updatedAt)}

@@ -106,14 +106,24 @@ export const api = {
     });
   },
 
+  async ingestGraph(
+    graphId: string,
+  ): Promise<{ status: string; entities_ingested: number }> {
+    return request<{ status: string; entities_ingested: number }>("rag/ingest/graph", {
+      method: "POST",
+      body: JSON.stringify({ graph_id: graphId }),
+    });
+  },
+
   async queryRag(
     tenantId: string,
     query: string,
+    graphId?: string,
     limit: number = 5,
   ): Promise<{ items: any[]; answer: string }> {
     return request<{ items: any[]; answer: string }>("rag/query", {
       method: "POST",
-      body: JSON.stringify({ tenant_id: tenantId, query, limit }),
+      body: JSON.stringify({ tenant_id: tenantId, query, limit, ...(graphId ? { graph_id: graphId } : {}) }),
     });
   },
 };
