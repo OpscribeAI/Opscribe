@@ -28,6 +28,12 @@ class ExportRequest(BaseModel):
     aws_region: str = "us-east-1"
 
 
+class GithubLinkRequest(BaseModel):
+    repo_url: str
+    client_id: str
+    branch: str = "main"
+
+
 class ExportResponse(BaseModel):
     status: str
     message: str
@@ -106,4 +112,52 @@ async def trigger_export(
     return ExportResponse(
         status="started",
         message=f"Export pipeline started for client {request.client_id}. Data will be exported to S3.",
+    )
+
+
+async def run_github_link(
+    client_id: str,
+    repo_url: str,
+    branch: str,
+    session: Session,
+):
+    try:
+        pipeline = GitHubIngestionPipeline(
+            repo_url=repo_url,
+            branch=branch,
+            access_token="",
+        )
+        github_result = await pipeline.run()
+        
+        # Export to S3
+        exporter = S3Exporter()
+        label = f"github_link_export_{repo_url.split('/')[-1] if '/' in repo_url else 'repo'}"
+        await exporter.export(client_id=client_id, results=[github_result], label=label)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"GitHub link ingestion failed for {repo_url}: {e}")
+
+
+@router.post("/github-link", response_model=ExportResponse)
+async def trigger_github_link(
+    request: GithubLinkRequest,
+    background_tasks: BackgroundTasks,
+    session: Session = Depends(get_session),
+):
+    """Trigger a background ingestion of a public GitHub URL directly to S3."""
+    client = session.get(Client, request.client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+
+    background_tasks.add_task(
+        run_github_link,
+        client_id=request.client_id,
+        repo_url=request.repo_url,
+        branch=request.branch,
+        session=session,
+    )
+
+    return ExportResponse(
+        status="started",
+        message=f"GitHub link ingestion started for client {request.client_id}. Data will be exported to S3.",
     )

@@ -16,6 +16,8 @@ class RepositoryWalker:
         self.access_token = access_token
 
     def _get_auth_url(self) -> str:
+        if not self.access_token:
+            return self.repo_url
         parsed = urlparse(self.repo_url)
         return parsed._replace(netloc=f"oauth2:{self.access_token}@{parsed.netloc}").geturl()
 
