@@ -21,6 +21,7 @@ class Client(SQLModel, table=True):
     edge_types: List["EdgeType"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     nodes: List["Node"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     edges: List["Edge"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    connected_repositories: List["ConnectedRepository"] = Relationship(back_populates="client", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 
 class ConnectedRepository(SQLModel, table=True):
