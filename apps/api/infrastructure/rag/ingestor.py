@@ -1,7 +1,7 @@
 from uuid import UUID
 from datetime import datetime
 from sqlmodel import Session, select
-from apps.api.models import ArchitectureGraph, Node, Edge
+from apps.api.models import Graph, Node, Edge
 from apps.api.infrastructure.rag.models import KnowledgeBaseItem
 from apps.api.infrastructure.rag.embeddings import EmbeddingService
 
@@ -12,25 +12,28 @@ class GraphIngestor:
 
     def ingest_graph(self, graph_id: UUID):
         # 1. Fetch Graph Data
-        graph = self.session.get(ArchitectureGraph, graph_id)
+        graph = self.session.get(Graph, graph_id)
         if not graph:
             raise ValueError(f"Graph with ID {graph_id} not found")
 
         # 2. Process Nodes
         for node in graph.nodes:
-            self._process_node(node, graph.tenant_id)
+            self._process_node(node, graph.client_id)
 
         # 3. Process Edges
         for edge in graph.edges:
-            self._process_edge(edge, graph.tenant_id)
+            self._process_edge(edge, graph.client_id)
             
         self.session.commit()
 
     def _process_node(self, node: Node, tenant_id: UUID):
         # Create text representation of the node
-        text_content = f"Component: {node.label} ({node.type}). "
-        if node.data:
-            text_content += f"Configuration: {node.data}. "
+        node_type_name = node.node_type.name if node.node_type else "Unknown Type"
+        display = node.display_name or node.key
+        text_content = f"Component: {display} ({node_type_name}). "
+        
+        if node.properties:
+            text_content += f"Properties: {node.properties}. "
         
         # Generate embedding
         embedding = self.embedding_service.generate_embedding(text_content)
@@ -45,7 +48,7 @@ class GraphIngestor:
             entity_id=node.id,
             content=text_content,
             embedding=embedding,
-            metadata={"type": "node", "node_type": node.type},
+            metadata_={"type": "node", "node_type": node_type_name, "node_key": node.key},
             created_at=datetime.utcnow().isoformat(),
             updated_at=datetime.utcnow().isoformat()
         )
@@ -53,16 +56,20 @@ class GraphIngestor:
 
     def _process_edge(self, edge: Edge, tenant_id: UUID):
         # We need to fetch source and target node labels for context
-        source = self.session.get(Node, edge.source_id)
-        target = self.session.get(Node, edge.target_id)
+        source = self.session.get(Node, edge.from_node_id)
+        target = self.session.get(Node, edge.to_node_id)
         
         if not source or not target:
             return
 
-        text_content = f"Connection: {source.label} interacts with {target.label}. "
-        text_content += f"Type: {edge.type}. "
-        if edge.data:
-            text_content += f"Details: {edge.data}."
+        source_display = source.display_name or source.key
+        target_display = target.display_name or target.key
+        edge_type_name = edge.edge_type.name if edge.edge_type else "Unknown Relation"
+
+        text_content = f"Connection: {source_display} interacts with {target_display}. "
+        text_content += f"Type: {edge_type_name}. "
+        if edge.properties:
+            text_content += f"Details: {edge.properties}."
 
         embedding = self.embedding_service.generate_embedding(text_content)
 
@@ -72,7 +79,7 @@ class GraphIngestor:
             entity_id=edge.id,
             content=text_content,
             embedding=embedding,
-            metadata={"type": "edge", "relation": edge.type},
+            metadata_={"type": "edge", "relation": edge_type_name},
             created_at=datetime.utcnow().isoformat(),
             updated_at=datetime.utcnow().isoformat()
         )

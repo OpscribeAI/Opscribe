@@ -1,26 +1,19 @@
 from typing import List
-from langchain_openai import OpenAIEmbeddings
-from pydantic_settings import BaseSettings
-
-class Settings(BaseSettings):
-    OPENAI_API_KEY: str
-    
-    class Config:
-        env_file = ".env"
-
-settings = Settings()
+from langchain_huggingface import HuggingFaceEmbeddings
+import os
 
 class EmbeddingService:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-small",
-            api_key=settings.OPENAI_API_KEY
-        )
+        # Using a small, fast local model that doesn't require an API key
+        self.model_name = "sentence-transformers/all-MiniLM-L6-v2"
+        self.embeddings = HuggingFaceEmbeddings(model_name=self.model_name)
 
     def generate_embedding(self, text: str) -> List[float]:
-        # Clean text slightly before embedding
-        cleaned_text = text.replace("\n", " ")
-        return self.embeddings.embed_query(cleaned_text)
+        """
+        Generates a vector embedding for the given text using a local HuggingFace model.
+        Returns a list of floats (dimension 384).
+        """
+        return self.embeddings.embed_query(text)
 
     def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
         return self.embeddings.embed_documents(texts)

@@ -4,7 +4,10 @@ sqlmodel
 psycopg2-binary
 pgvector
 langchain
-langchain-openai
+langchain-google-genai
+langchain-huggingface
+langchain-groq
+sentence-transformers
 python-dotenv
 httpx
 pydantic-settings

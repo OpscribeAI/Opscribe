@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from sqlmodel import Session, select
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import text
@@ -12,7 +12,7 @@ class GraphRetriever:
         self.session = session
         self.embedding_service = EmbeddingService()
 
-    def retrieve(self, query: str, tenant_id: UUID, limit: int = 5) -> List[KnowledgeBaseItem]:
+    def retrieve(self, query: str, tenant_id: UUID, limit: int = 5, graph_id: Optional[UUID] = None) -> List[KnowledgeBaseItem]:
         # 1. Generate Query Embedding
         query_embedding = self.embedding_service.generate_embedding(query)
 
@@ -28,7 +28,12 @@ class GraphRetriever:
         
         stmt = select(KnowledgeBaseItem).where(
             KnowledgeBaseItem.tenant_id == tenant_id
-        ).order_by(
+        )
+
+        if graph_id:
+            stmt = stmt.where(KnowledgeBaseItem.graph_id == graph_id)
+
+        stmt = stmt.order_by(
             KnowledgeBaseItem.embedding.cosine_distance(query_embedding)
         ).limit(limit)
 

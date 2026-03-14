@@ -22,31 +22,6 @@ Opscribe is an infrastructure knowledge platform that allows architects to diagr
 ```bash
 npm install
 ```
-
-**Backend:**
-```bash
-# Create virtual environment
-python3 -m venv apps/api/venv
-
-# Activate virtual environment
-source apps/api/venv/bin/activate
-
-# Install requirements
-pip install -r apps/api/requirements.txt
-```
-
-### 2. Running the Application
-
-**Run Everything (Frontend + Backend):**
-```bash
-# Ensure venv is created first
-npm run dev
-```
-
-**Or Run Separately:**
-
-**Frontend:**
-```bash
 npm run dev:web
 # Opens at http://localhost:5173
 ```
