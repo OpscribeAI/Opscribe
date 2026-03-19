@@ -34,15 +34,53 @@ class AWSDetector(BaseDetector):
         self.region_name = region_name
         self.credentials = credentials or {}
         self.account_id = None
+        self._temp_credentials = None
 
     def _get_client(self, service_name: str):
-        """Centralized factory for boto3 clients using DB credentials or .env fallback."""
+        """Centralized factory for boto3 clients using DB credentials, STS AssumeRole, or .env fallback."""
         env = dotenv_values("apps/api/.env")
         
-        endpoint_url = self.credentials.get("endpoint_url") or env.get(f"AWS_{service_name.upper()}_ENDPOINT_URL") or os.environ.get(f"AWS_{service_name.upper()}_ENDPOINT_URL")
-        region = self.credentials.get("region") or env.get("AWS_REGION") or os.environ.get("AWS_REGION", self.region_name)
-        access_key = self.credentials.get("aws_access_key_id") or env.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID")
-        secret_key = self.credentials.get("aws_secret_access_key") or env.get("AWS_SECRET_ACCESS_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+        # Base credentials (must be tenant-provided)
+        access_key = self.credentials.get("aws_access_key_id")
+        secret_key = self.credentials.get("aws_secret_access_key")
+        session_token = self.credentials.get("aws_session_token")
+        
+        # Cross-Account Role Assumption (Enterprise Standard)
+        role_arn = self.credentials.get("role_arn")
+        if role_arn:
+            if not self._temp_credentials:
+                # Use Opscribe's global AWS credentials ONLY to broker the STS AssumeRole call
+                sts_access = env.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID")
+                sts_secret = env.get("AWS_SECRET_ACCESS_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+                
+                sts = boto3.client(
+                    "sts", 
+                    region_name=self.region_name,
+                    aws_access_key_id=sts_access,
+                    aws_secret_access_key=sts_secret
+                )
+                
+                assume_role_kwargs = {
+                    "RoleArn": role_arn,
+                    "RoleSessionName": f"OpscribeDiscovery-{self.account_id or 'Init'}"
+                }
+                
+                # External ID for Confused Deputy protection
+                external_id = self.credentials.get("external_id")
+                if external_id:
+                    assume_role_kwargs["ExternalId"] = external_id
+                    
+                logger.info(f"Assuming role {role_arn} for discovery...")
+                response = sts.assume_role(**assume_role_kwargs)
+                self._temp_credentials = response['Credentials']
+            
+            # Downgrade to the temporary tenant credentials
+            access_key = self._temp_credentials['AccessKeyId']
+            secret_key = self._temp_credentials['SecretAccessKey']
+            session_token = self._temp_credentials['SessionToken']
+            
+        endpoint_url = self.credentials.get("endpoint_url")
+        region = self.credentials.get("region")
         
         client_kwargs = {
             "service_name": service_name,
@@ -50,6 +88,8 @@ class AWSDetector(BaseDetector):
             "aws_access_key_id": access_key,
             "aws_secret_access_key": secret_key,
         }
+        if session_token:
+            client_kwargs["aws_session_token"] = session_token
         
         # S3 local endpoint support (e.g., MinIO)
         if service_name == "s3" and endpoint_url:

@@ -11,7 +11,49 @@ from apps.api.database import get_session
 from apps.api.models import Client, ConnectedRepository, ClientIntegration
 from apps.api.utils.encryption import decrypt_dict
 
-# ... existing code ...
+import logging
+from apps.api.ingestors.pipeline.ingestors import AWSIngestor, GitHubIngestor, GitHubLinkIngestor
+from apps.api.ingestors.pipeline.s3_exporter import S3Exporter
+from apps.api.ingestors.pipeline.base import BaseIngestor, BaseExporter
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(
+    prefix="/pipeline",
+    tags=["pipeline"],
+)
+
+class ExportRequest(BaseModel):
+    client_id: str
+    include_aws: bool = True
+    include_github: bool = True
+    aws_region: str = "us-east-1"
+
+class GithubLinkRequest(BaseModel):
+    client_id: str
+    repo_url: str
+    branch: Optional[str] = "main"
+
+class ExportResponse(BaseModel):
+    status: str
+    message: str
+
+async def run_export(
+    client_id: str,
+    ingestors: List[BaseIngestor],
+    exporter: BaseExporter,
+):
+    try:
+        results = []
+        for ingestor in ingestors:
+            ingestor_results = await ingestor.ingest()
+            if ingestor_results:
+                results.extend(ingestor_results)
+        
+        if results:
+            await exporter.export(client_id=client_id, results=results, label="export")
+    except Exception as e:
+        logger.error(f"Pipeline export failed: {e}")
 
 @router.post("/export", response_model=ExportResponse)
 async def trigger_export(

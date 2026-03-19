@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from apps.api.database import get_session
 from apps.api.models import ClientIntegration
-from apps.api.routers.clients import get_current_client_id
 from apps.api.utils.encryption import encrypt_dict
 
 router = APIRouter(
@@ -22,12 +21,12 @@ class IntegrationConfig(BaseModel):
     credentials: Dict[str, Any]
 
 # Keys that must be encrypted before saving to the database
-SENSITIVE_KEYS = ["aws_secret_access_key", "secret_key", "minio_secret_key"]
+SENSITIVE_KEYS = ["aws_secret_access_key", "secret_key", "minio_secret_key", "role_arn", "external_id"]
 
 @router.get("/", response_model=List[IntegrationResponse])
 def get_integrations(
-    session: Session = Depends(get_session),
-    client_id: str = Depends(get_current_client_id)
+    client_id: str,
+    session: Session = Depends(get_session)
 ):
     """Get all configured integrations for the current client, masking secrets."""
     statement = select(ClientIntegration).where(
@@ -52,8 +51,8 @@ def get_integrations(
 def save_integration(
     provider: str,
     config: IntegrationConfig,
-    session: Session = Depends(get_session),
-    client_id: str = Depends(get_current_client_id)
+    client_id: str,
+    session: Session = Depends(get_session)
 ):
     """Save or update an integration configuration (e.g. AWS credentials)."""
     statement = select(ClientIntegration).where(
@@ -84,8 +83,8 @@ def save_integration(
 @router.delete("/{provider}")
 def remove_integration(
     provider: str,
-    session: Session = Depends(get_session),
-    client_id: str = Depends(get_current_client_id)
+    client_id: str,
+    session: Session = Depends(get_session)
 ):
     """Deactivate an integration."""
     statement = select(ClientIntegration).where(

@@ -13,7 +13,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const [activeTab, setActiveTab] = useState<"aws" | "repos">("aws");
 
     // AWS State
+    const [authMethod, setAuthMethod] = useState<"role" | "keys">("role");
     const [awsRegion, setAwsRegion] = useState("us-east-1");
+    const [roleArn, setRoleArn] = useState("");
+    const [externalId, setExternalId] = useState("");
     const [awsAccessKey, setAwsAccessKey] = useState("");
     const [awsSecretKey, setAwsSecretKey] = useState("");
     const [awsStatus, setAwsStatus] = useState<{ type: "success" | "error", text: string } | null>(null);
@@ -58,24 +61,29 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         setIsSaving(true);
         setAwsStatus(null);
         try {
-            // Save AWS keys
-            if (awsAccessKey || awsSecretKey) {
+            // Save AWS config
+            const credentialsPayload: any = { region: awsRegion };
+            if (authMethod === "role" && roleArn) {
+                credentialsPayload.role_arn = roleArn;
+                if (externalId) credentialsPayload.external_id = externalId;
+            } else if (authMethod === "keys" && (awsAccessKey || awsSecretKey)) {
+                credentialsPayload.aws_access_key_id = awsAccessKey;
+                credentialsPayload.aws_secret_access_key = awsSecretKey;
+            }
+
+            if (Object.keys(credentialsPayload).length > 1) {
                 await fetch(`${API_BASE}/integrations/aws?client_id=${MOCK_CLIENT_ID}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        credentials: {
-                            aws_access_key_id: awsAccessKey,
-                            aws_secret_access_key: awsSecretKey,
-                            region: awsRegion
-                        }
-                    })
+                    body: JSON.stringify({ credentials: credentialsPayload })
                 });
             }
 
             setAwsStatus({ type: "success", text: "Integrations saved successfully!" });
             setAwsAccessKey("");
             setAwsSecretKey("");
+            setRoleArn("");
+            setExternalId("");
         } catch (e: any) {
             setAwsStatus({ type: "error", text: e.message || "Failed to save integrations" });
         } finally {
@@ -142,24 +150,84 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     {activeTab === "aws" && (
                         <div className="space-y-6">
                             <div>
-                                <h3 className="text-sm font-medium text-white mb-3">AWS Discovery Credentials</h3>
-                                <p className="text-xs text-gray-400 mb-4">Required to discover cloud assets like EC2, RDS, and Lambda. If omitted, demo mode defaults to local MinIO if available.</p>
+                                <h3 className="text-sm font-medium text-white mb-3 flex items-center justify-between">
+                                    AWS Discovery Setup
+                                </h3>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">Access Key ID</label>
-                                        <input type="text" value={awsAccessKey} onChange={e => setAwsAccessKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="AKIA..." />
+                                {/* Auth Method Toggle */}
+                                <div className="flex bg-gray-800 p-1 rounded-lg mb-5 w-max">
+                                    <button
+                                        onClick={() => setAuthMethod("role")}
+                                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${authMethod === 'role' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        Cross-Account Role (Recommended)
+                                    </button>
+                                    <button
+                                        onClick={() => setAuthMethod("keys")}
+                                        className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${authMethod === 'keys' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}
+                                    >
+                                        Direct Access Keys
+                                    </button>
+                                </div>
+
+                                {authMethod === "role" ? (
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">IAM Role ARN *</label>
+                                            <input type="text" value={roleArn} onChange={e => setRoleArn(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="arn:aws:iam::123456789012:role/Opscribe" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">External ID (Optional)</label>
+                                            <input type="text" value={externalId} onChange={e => setExternalId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="Secure token..." />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs text-gray-500 mb-1">Secret Access Key</label>
-                                        <input type="password" value={awsSecretKey} onChange={e => setAwsSecretKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="••••••••••••••••" />
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Access Key ID *</label>
+                                            <input type="text" value={awsAccessKey} onChange={e => setAwsAccessKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="AKIA..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Secret Access Key *</label>
+                                            <input type="password" value={awsSecretKey} onChange={e => setAwsSecretKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="••••••••••••••••" />
+                                        </div>
                                     </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Default AWS Region</label>
+                                    <input type="text" value={awsRegion} onChange={e => setAwsRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="us-east-1" />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-xs text-gray-500 mb-1">AWS Region</label>
-                                <input type="text" value={awsRegion} onChange={e => setAwsRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="us-east-1" />
+                            <hr className="border-gray-800" />
+
+                            <div className="bg-blue-900/10 border border-blue-900/40 rounded-lg p-4">
+                                <h4 className="text-sm font-semibold text-blue-400 mb-2">Required IAM Permissions</h4>
+                                <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+                                    To allow Opscribe to discover your cloud architecture, you must attach the following JSON policy to your {authMethod === 'role' ? 'IAM Role' : 'IAM User'}.
+                                    {authMethod === 'role' && " Ensure your role's Trust Relationship allows our AWS account to assume it."}
+                                </p>
+                                <pre className="bg-gray-950 p-3 rounded border border-gray-800 overflow-x-auto text-[10px] text-gray-300 font-mono leading-relaxed select-all">
+                                    {`{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "rds:DescribeDBInstances",
+        "lambda:ListFunctions",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}`}
+                                </pre>
                             </div>
 
                             {awsStatus && (
