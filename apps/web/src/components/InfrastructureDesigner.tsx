@@ -92,8 +92,8 @@ export default function InfrastructureDesigner({
   const [clientId, setClientId] = useState<string>("");
 
   useEffect(() => {
-    // Initialize an anonymous session to track RAG queries and metadata for the current user
-    api.getAnonSession().then((c) => setClientId(c.id));
+    // Fetch the current authenticated user session to track RAG queries and metadata
+    api.getCurrentUser().then((c) => setClientId(c.id)).catch(console.error);
   }, []);
 
   // Load nodes/edges from API when opening a graph by id (UUID) that has no nodes yet
