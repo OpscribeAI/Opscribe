@@ -122,3 +122,17 @@ websockets==16.0
 xxhash==3.6.0
 yarl==1.23.0
 zstandard==0.25.0
+fastapi
+uvicorn
+sqlmodel
+psycopg2-binary
+pgvector
+langchain
+langchain-google-genai
+langchain-huggingface
+langchain-groq
+sentence-transformers
+python-dotenv
+httpx
+pydantic-settings
+alembic

@@ -8,7 +8,7 @@ import os
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from apps.api.database import create_db_and_tables
-from apps.api.routers import clients, graphs, nodes, edges, discovery, github, pipeline, admin
+from apps.api.routers import clients, graphs, nodes, edges, discovery, github, pipeline, admin, rag
 from alembic.config import Config
 from alembic import command
 
@@ -66,6 +66,7 @@ app.include_router(discovery.router)
 app.include_router(pipeline.router)
 app.include_router(admin.router)
 app.include_router(integrations.router)
+app.include_router(rag.router)
 
 @app.get("/health")
 async def health_check():

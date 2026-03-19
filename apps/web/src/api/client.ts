@@ -94,4 +94,36 @@ export const api = {
   async deleteGraph(graphId: string): Promise<void> {
     await request(`graphs/${graphId}`, { method: "DELETE", parseJson: false });
   },
+
+  async ingestRepo(
+    tenantId: string,
+    repoUrl: string,
+    ref: string = "main",
+  ): Promise<{ status: string; chunks_ingested: number }> {
+    return request<{ status: string; chunks_ingested: number }>("rag/ingest/repo", {
+      method: "POST",
+      body: JSON.stringify({ tenant_id: tenantId, repo_url: repoUrl, ref }),
+    });
+  },
+
+  async ingestGraph(
+    graphId: string,
+  ): Promise<{ status: string; entities_ingested: number }> {
+    return request<{ status: string; entities_ingested: number }>("rag/ingest/graph", {
+      method: "POST",
+      body: JSON.stringify({ graph_id: graphId }),
+    });
+  },
+
+  async queryRag(
+    tenantId: string,
+    query: string,
+    graphId?: string,
+    limit: number = 5,
+  ): Promise<{ items: any[]; answer: string }> {
+    return request<{ items: any[]; answer: string }>("rag/query", {
+      method: "POST",
+      body: JSON.stringify({ tenant_id: tenantId, query, limit, ...(graphId ? { graph_id: graphId } : {}) }),
+    });
+  },
 };

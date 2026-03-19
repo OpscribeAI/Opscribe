@@ -30,6 +30,15 @@ export default function InfrastructureDashboard({
     return d.toLocaleDateString();
   };
 
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyId = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 p-8 relative">
       <div className="max-w-6xl mx-auto">
