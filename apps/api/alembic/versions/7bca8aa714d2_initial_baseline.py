@@ -1,8 +1,8 @@
-"""Initial schema
+"""initial baseline
 
-Revision ID: 39a90d1dd11f
+Revision ID: 7bca8aa714d2
 Revises: 
-Create Date: 2026-03-18 23:11:37.875224
+Create Date: 2026-03-19 00:52:11.193837
 
 """
 from typing import Sequence, Union
@@ -11,9 +11,10 @@ from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 from sqlalchemy.dialects import postgresql
+import pgvector
 
 # revision identifiers, used by Alembic.
-revision: str = '39a90d1dd11f'
+revision: str = '7bca8aa714d2'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +32,34 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_client_name'), 'client', ['name'], unique=False)
+    op.create_table('knowledgebaseitem',
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('tenant_id', sa.Uuid(), nullable=False),
+    sa.Column('graph_id', sa.Uuid(), nullable=False),
+    sa.Column('entity_id', sa.Uuid(), nullable=False),
+    sa.Column('content', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=384), nullable=True),
+    sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('created_at', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('updated_at', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_knowledgebaseitem_entity_id'), 'knowledgebaseitem', ['entity_id'], unique=False)
+    op.create_index(op.f('ix_knowledgebaseitem_graph_id'), 'knowledgebaseitem', ['graph_id'], unique=False)
+    op.create_index(op.f('ix_knowledgebaseitem_tenant_id'), 'knowledgebaseitem', ['tenant_id'], unique=False)
+    op.create_table('client_integration',
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
+    sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('credentials', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['client.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('client_id', 'provider', name='unique_client_provider_integration')
+    )
+    op.create_index(op.f('ix_client_integration_provider'), 'client_integration', ['provider'], unique=False)
     op.create_table('connected_repository',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('client_id', sa.Uuid(), nullable=False),
@@ -151,6 +180,12 @@ def downgrade() -> None:
     op.drop_table('node_type')
     op.drop_table('graph')
     op.drop_table('connected_repository')
+    op.drop_index(op.f('ix_client_integration_provider'), table_name='client_integration')
+    op.drop_table('client_integration')
+    op.drop_index(op.f('ix_knowledgebaseitem_tenant_id'), table_name='knowledgebaseitem')
+    op.drop_index(op.f('ix_knowledgebaseitem_graph_id'), table_name='knowledgebaseitem')
+    op.drop_index(op.f('ix_knowledgebaseitem_entity_id'), table_name='knowledgebaseitem')
+    op.drop_table('knowledgebaseitem')
     op.drop_index(op.f('ix_client_name'), table_name='client')
     op.drop_table('client')
     # ### end Alembic commands ###
