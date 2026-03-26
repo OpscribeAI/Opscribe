@@ -3,7 +3,7 @@ import { Settings, Database, Github, CheckCircle, AlertCircle, Play } from "luci
 import { api } from "../api/client";
 
 const API_BASE = "http://localhost:8000";
-const GITHUB_APP_INSTALL_URL = "https://github.com/apps/opscribe/installations/new";
+const GITHUB_APP_INSTALL_URL = "https://github.com/apps/opscribe-app/installations/new";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -322,11 +322,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                         disabled={loadingAvailable || availableRepos.length === 0}
                                     >
                                         {availableRepos.length === 0 ? (
-                                            <option>No extra repositories available...</option>
+                                            <option value="" disabled>No extra repositories available...</option>
                                         ) : (
-                                            availableRepos.map(r => (
-                                                <option key={r.id} value={r.name}>{r.name}</option>
-                                            ))
+                                            <>
+                                                <option value="" disabled>Select a repository...</option>
+                                                {availableRepos.map(r => (
+                                                    <option key={r.id} value={r.name}>{r.name}</option>
+                                                ))}
+                                            </>
                                         )}
                                     </select>
                                 </div>

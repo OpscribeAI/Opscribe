@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     # Load resources
     print("Starting Opscribe API...")
     create_db_and_tables()
-    run_migrations()
+    # run_migrations()
     yield
     # Clean up resources
     print("Shutting down Opscribe API...")

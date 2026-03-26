@@ -32,8 +32,14 @@ class S3Exporter(BaseExporter):
         
         endpoint_url = env.get("AWS_S3_ENDPOINT_URL") or os.environ.get("AWS_S3_ENDPOINT_URL")
         region = env.get("AWS_REGION") or os.environ.get("AWS_REGION", "us-east-1")
-        access_key = env.get("AWS_ACCESS_KEY_ID") or os.environ.get("AWS_ACCESS_KEY_ID")
-        secret_key = env.get("AWS_SECRET_ACCESS_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+        
+        # If talking to local MinIO, prefer MinIO credentials over AWS production IAM keys
+        if endpoint_url and "localhost" in endpoint_url:
+            access_key = env.get("OPSCRIBE_MINIO_USER") or os.environ.get("OPSCRIBE_MINIO_USER", "minioadmin")
+            secret_key = env.get("OPSCRIBE_MINIO_PASSWORD") or os.environ.get("OPSCRIBE_MINIO_PASSWORD", "minioadmin")
+        else:
+            access_key = env.get("OPSCRIBE_AWS_ACCESS_KEY_ID") or os.environ.get("OPSCRIBE_AWS_ACCESS_KEY_ID")
+            secret_key = env.get("OPSCRIBE_AWS_SECRET_ACCESS_KEY") or os.environ.get("OPSCRIBE_AWS_SECRET_ACCESS_KEY")
         
         client_kwargs = {
             "service_name": "s3",
