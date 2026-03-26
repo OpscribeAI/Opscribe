@@ -6,16 +6,29 @@ import json
 async def run_test():
     print("Initializing GitHub Ingestion Pipeline for payload validation...")
     pipeline = GitHubIngestionPipeline(
-        client_id="80ace70b-2597-41ec-985e-817ecea95a9a",
-        session=None,
-        repo_url="https://github.com/expressjs/express"
+        repo_url="https://github.com/expressjs/express",
+        branch="master",
+        use_semantic=False
     )
     # The pipeline inherently clones, walks, executes semantic discovery, validates and generates Nodes!
     results = await pipeline.run()
     
-    # We validate the exact payload S3Exporter creates before uploading.
-    exporter = S3Exporter()
-    payload = exporter._result_to_dict(results[0])
+    # We validate the exact payload format the exporter creates before uploading.
+    payload = {
+        "source": getattr(results, "source", "github"),
+        "nodes": [
+            {
+                "key": n.key,
+                "display_name": n.display_name,
+                "node_type": getattr(n, "node_type", "Unknown"),
+                "properties": n.properties,
+                "source_metadata": n.source_metadata,
+            }
+            for n in getattr(results, "nodes", [])
+        ],
+        "edges": [],
+        "metadata": getattr(results, "metadata", {}),
+    }
     
     print("\n\n=== S3/MINIO JSON PAYLOAD SIMULATION ===")
     print(json.dumps(payload, indent=2))

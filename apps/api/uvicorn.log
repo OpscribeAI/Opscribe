@@ -136,43 +136,473 @@ Starting Opscribe API...
 Running database migrations...
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-ine CREATE EXTENSION IF NOT EXISTS vector
-2026-03-25 20:22:06,963 INFO sqlalchemy.engine.Engine [generated in 0.00042s] {}
-2026-03-25 20:22:06,978 INFO sqlalchemy.engine.Engine COMMIT
-Running database migrations...
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-WARNING:  StatReload detected changes in 'ingestors/github/pipeline.py'. Reloading...
-INFO:     Started server process [9595]
+WARNING:  StatReload detected changes in 'test_s3_format.py'. Reloading...
+INFO:     Started server process [10484]
 INFO:     Waiting for application startup.
 Starting Opscribe API...
-2026-03-25 20:22:37,206 INFO sqlalchemy.engine.Engine select pg_catalog.version()
-2026-03-25 20:22:37,206 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:22:37,207 INFO sqlalchemy.engine.Engine select current_schema()
-2026-03-25 20:22:37,207 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:22:37,208 INFO sqlalchemy.engine.Engine show standard_conforming_strings
-2026-03-25 20:22:37,208 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:22:37,210 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-2026-03-25 20:22:37,210 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
-2026-03-25 20:22:37,211 INFO sqlalchemy.engine.Engine [generated in 0.00005s] {}
-2026-03-25 20:22:37,212 INFO sqlalchemy.engine.Engine COMMIT
+2026-03-25 20:25:08,512 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:25:08,512 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:08,514 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:25:08,514 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:08,517 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:25:08,517 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:08,518 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:25:08,518 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:25:08,518 INFO sqlalchemy.engine.Engine [generated in 0.00004s] {}
+2026-03-25 20:25:08,521 INFO sqlalchemy.engine.Engine COMMIT
 Running database migrations...
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
-WARNING:  StatReload detected changes in 'ingestors/github/pipeline.py'. Reloading...
-INFO:     Started server process [9791]
+WARNING:  StatReload detected changes in 'test_s3_format.py'. Reloading...
+INFO:     Started server process [10673]
 INFO:     Waiting for application startup.
 Starting Opscribe API...
-2026-03-25 20:23:23,957 INFO sqlalchemy.engine.Engine select pg_catalog.version()
-2026-03-25 20:23:23,957 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:23:23,959 INFO sqlalchemy.engine.Engine select current_schema()
-2026-03-25 20:23:23,959 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:23:23,960 INFO sqlalchemy.engine.Engine show standard_conforming_strings
-2026-03-25 20:23:23,960 INFO sqlalchemy.engine.Engine [raw sql] {}
-2026-03-25 20:23:23,964 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-2026-03-25 20:23:23,964 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
-2026-03-25 20:23:23,964 INFO sqlalchemy.engine.Engine [generated in 0.00005s] {}
-2026-03-25 20:23:23,965 INFO sqlalchemy.engine.Engine COMMIT
+2026-03-25 20:25:24,320 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:25:24,320 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:24,322 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:25:24,322 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:24,323 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:25:24,323 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:24,324 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:25:24,324 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:25:24,324 INFO sqlalchemy.engine.Engine [generated in 0.00005s] {}
+2026-03-25 20:25:24,326 INFO sqlalchemy.engine.Engine COMMIT
 Running database migrations...
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
+WARNING:  StatReload detected changes in 'test_s3_format.py'. Reloading...
+INFO:     Started server process [10858]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:25:39,747 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:25:39,747 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:39,749 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:25:39,749 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:39,751 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:25:39,751 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:25:39,752 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:25:39,752 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:25:39,752 INFO sqlalchemy.engine.Engine [generated in 0.00006s] {}
+2026-03-25 20:25:39,754 INFO sqlalchemy.engine.Engine COMMIT
+Running database migrations...
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+WARNING:  StatReload detected changes in 'ingestors/github/semantic.py'. Reloading...
+INFO:     Started server process [11103]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:33:13,857 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:33:13,857 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:33:13,860 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:33:13,860 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:33:13,861 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:33:13,861 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:33:13,863 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:33:13,863 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:33:13,863 INFO sqlalchemy.engine.Engine [generated in 0.00004s] {}
+2026-03-25 20:33:13,866 INFO sqlalchemy.engine.Engine COMMIT
+Running database migrations...
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+INFO:     Started server process [13332]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:36:52,370 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:36:52,370 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,372 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:36:52,372 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,374 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:36:52,374 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,375 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:36:52,376 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:36:52,376 INFO sqlalchemy.engine.Engine [generated in 0.00010s] {}
+2026-03-25 20:36:52,377 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'benchmark_ingestion.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13332]
+INFO:     Started server process [13813]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:42:21,457 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:42:21,457 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,459 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:42:21,459 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,460 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:42:21,460 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,461 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:42:21,461 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:42:21,461 INFO sqlalchemy.engine.Engine [generated in 0.00004s] {}
+2026-03-25 20:42:21,464 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'routers/github.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13813]
+INFO:     Started server process [14603]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:44:23,336 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:44:23,336 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,337 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:44:23,338 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,340 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:44:23,340 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,341 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:44:23,341 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:44:23,342 INFO sqlalchemy.engine.Engine [generated in 0.00035s] {}
+2026-03-25 20:44:23,344 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+ed_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 0.009618s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 0.01372s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+INFO  [sqlalchemy.engine.Engine] [generated in 0.00005s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 2.006s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [generated in 0.00006s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 2.039s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+INFO  [sqlalchemy.engine.Engine] [generated in 0.00007s] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 19.59s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 19.6s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 19.6s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+INFO  [sqlalchemy.engine.Engine] [cached since 19.59s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 20.7s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 18.69s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 20.72s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+INFO  [sqlalchemy.engine.Engine] [cached since 18.67s ago] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 72.59s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 72.59s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 72.59s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+INFO  [sqlalchemy.engine.Engine] [cached since 72.58s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 74.18s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 72.17s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 74.2s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+INFO  [sqlalchemy.engine.Engine] [cached since 72.15s ago] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 77.28s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 77.29s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 77.29s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+INFO  [sqlalchemy.engine.Engine] [cached since 77.27s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 77.99s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+INFO  [sqlalchemy.engine.Engine] [cached since 75.98s ago] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] [cached since 75.95s ago] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO  [sqlalchemy.engine.Engine] BEGIN (implicit)
+INFO  [sqlalchemy.engine.Engine] SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+INFO  [sqlalchemy.engine.Engine] [cached since 78.01s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+INFO  [sqlalchemy.engine.Engine] ROLLBACK
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+INFO:     Started server process [13331]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:36:52,369 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:36:52,369 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,371 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:36:52,371 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,372 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:36:52,372 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:36:52,374 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:36:52,374 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:36:52,374 INFO sqlalchemy.engine.Engine [generated in 0.00005s] {}
+2026-03-25 20:36:52,376 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+INFO:     127.0.0.1:56590 - "GET /clients/ HTTP/1.1" 405 Method Not Allowed
+2026-03-25 20:38:48,112 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:48,125 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:38:48,125 INFO sqlalchemy.engine.Engine [generated in 0.00018s] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:56644 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:38:48,134 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:38:48,136 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:48,136 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:38:48,136 INFO sqlalchemy.engine.Engine [cached since 0.011s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:56645 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:38:48,138 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:38:48,142 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:48,143 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:38:48,143 INFO sqlalchemy.engine.Engine [cached since 0.01772s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+2026-03-25 20:38:48,146 INFO sqlalchemy.engine.Engine SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+2026-03-25 20:38:48,146 INFO sqlalchemy.engine.Engine [generated in 0.00008s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:56646 - "GET /clients/00000000-0000-0000-0000-000000000000/graphs HTTP/1.1" 200 OK
+2026-03-25 20:38:48,150 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:38:49,400 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:49,400 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:38:49,400 INFO sqlalchemy.engine.Engine [cached since 1.276s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:56647 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:38:49,405 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:38:49,426 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:49,427 INFO sqlalchemy.engine.Engine SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+2026-03-25 20:38:49,427 INFO sqlalchemy.engine.Engine [generated in 0.00012s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:56652 - "GET /github/connected-repos?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 200 OK
+2026-03-25 20:38:49,449 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:49,449 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:38:49,449 INFO sqlalchemy.engine.Engine [cached since 1.324s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+2026-03-25 20:38:49,453 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:38:49,453 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:56653 - "GET /github/repos?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 401 Unauthorized
+2026-03-25 20:38:49,467 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:38:49,468 INFO sqlalchemy.engine.Engine SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+2026-03-25 20:38:49,468 INFO sqlalchemy.engine.Engine [generated in 0.00010s] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO:     127.0.0.1:56651 - "GET /integrations/?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 200 OK
+2026-03-25 20:38:49,471 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:56675 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56675 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+WARNING:  StatReload detected changes in 'benchmark_ingestion.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13331]
+INFO:     Started server process [13812]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:42:21,457 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:42:21,457 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,459 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:42:21,459 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,460 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:42:21,460 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:42:21,461 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:42:21,461 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:42:21,462 INFO sqlalchemy.engine.Engine [generated in 0.00006s] {}
+2026-03-25 20:42:21,464 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+2026-03-25 20:43:25,548 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:43:25,560 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:43:25,560 INFO sqlalchemy.engine.Engine [generated in 0.00012s] {'pk_1': UUID('80ace70b-2597-41ec-985e-817ecea95a9a')}
+2026-03-25 20:43:25,563 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:     127.0.0.1:56748 - "POST /github/connect HTTP/1.1" 401 Unauthorized
+WARNING:  StatReload detected changes in 'routers/github.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [13812]
+INFO:     Started server process [14602]
+INFO:     Waiting for application startup.
+Starting Opscribe API...
+2026-03-25 20:44:23,336 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-03-25 20:44:23,336 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,337 INFO sqlalchemy.engine.Engine select current_schema()
+2026-03-25 20:44:23,338 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,340 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-03-25 20:44:23,340 INFO sqlalchemy.engine.Engine [raw sql] {}
+2026-03-25 20:44:23,341 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:44:23,341 INFO sqlalchemy.engine.Engine CREATE EXTENSION IF NOT EXISTS vector
+2026-03-25 20:44:23,342 INFO sqlalchemy.engine.Engine [generated in 0.00035s] {}
+2026-03-25 20:44:23,344 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+INFO:     127.0.0.1:56768 - "GET /github/repos?client_id=80ace70b-2597-41ec-985e-817ecea95a9a HTTP/1.1" 200 OK
+2026-03-25 20:48:09,496 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:09,509 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:48:09,509 INFO sqlalchemy.engine.Engine [generated in 0.00013s] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:58593 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:48:09,513 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:48:09,515 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:09,515 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:48:09,516 INFO sqlalchemy.engine.Engine [cached since 0.006785s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:58594 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:48:09,517 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:48:09,521 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:09,521 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:48:09,521 INFO sqlalchemy.engine.Engine [cached since 0.01269s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+2026-03-25 20:48:09,525 INFO sqlalchemy.engine.Engine SELECT graph.id, graph.client_id, graph.name, graph.description, graph.created_at, graph.updated_at, graph.settings 
+FROM graph 
+WHERE graph.client_id = %(client_id_1)s::UUID ORDER BY graph.updated_at DESC
+2026-03-25 20:48:09,525 INFO sqlalchemy.engine.Engine [generated in 0.00010s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:58595 - "GET /clients/00000000-0000-0000-0000-000000000000/graphs HTTP/1.1" 200 OK
+2026-03-25 20:48:09,528 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:48:11,009 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:11,009 INFO sqlalchemy.engine.Engine SELECT client.id AS client_id, client.name AS client_name, client.created_at AS client_created_at, client.updated_at AS client_updated_at, client.metadata AS client_metadata 
+FROM client 
+WHERE client.id = %(pk_1)s::UUID
+2026-03-25 20:48:11,009 INFO sqlalchemy.engine.Engine [cached since 1.5s ago] {'pk_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:58602 - "GET /clients/me HTTP/1.1" 200 OK
+2026-03-25 20:48:11,014 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:48:11,025 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:11,025 INFO sqlalchemy.engine.Engine SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID
+2026-03-25 20:48:11,025 INFO sqlalchemy.engine.Engine [generated in 0.00006s] {'client_id_1': UUID('00000000-0000-0000-0000-000000000000')}
+INFO:     127.0.0.1:58607 - "GET /github/connected-repos?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58608 - "GET /github/repos?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 200 OK
+2026-03-25 20:48:11,030 INFO sqlalchemy.engine.Engine ROLLBACK
+2026-03-25 20:48:11,041 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:48:11,042 INFO sqlalchemy.engine.Engine SELECT client_integration.id, client_integration.client_id, client_integration.provider, client_integration.credentials, client_integration.is_active, client_integration.created_at, client_integration.updated_at 
+FROM client_integration 
+WHERE client_integration.client_id = %(client_id_1)s::UUID AND client_integration.is_active = true
+2026-03-25 20:48:11,042 INFO sqlalchemy.engine.Engine [generated in 0.00009s] {'client_id_1': '00000000-0000-0000-0000-000000000000'}
+INFO:     127.0.0.1:58606 - "GET /integrations/?client_id=00000000-0000-0000-0000-000000000000 HTTP/1.1" 200 OK
+2026-03-25 20:48:11,047 INFO sqlalchemy.engine.Engine ROLLBACK
+DEBUG: S3Exporter initialized with bucket: opscribe-data, endpoint: http://localhost:9000
+INFO:     127.0.0.1:58705 - "POST /github/connect HTTP/1.1" 200 OK
+2026-03-25 20:51:24,048 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-03-25 20:51:24,048 INFO sqlalchemy.engine.Engine SELECT connected_repository.id, connected_repository.client_id, connected_repository.repo_url, connected_repository.default_branch, connected_repository.installation_id, connected_repository.target_repo_id, connected_repository.last_ingested_at, connected_repository.ingestion_status, connected_repository.created_at, connected_repository.updated_at 
+FROM connected_repository 
+WHERE connected_repository.client_id = %(client_id_1)s::UUID AND connected_repository.repo_url = %(repo_url_1)s
+2026-03-25 20:51:24,048 INFO sqlalchemy.engine.Engine [generated in 0.00007s] {'client_id_1': '80ace70b-2597-41ec-985e-817ecea95a9a', 'repo_url_1': 'https://github.com/expressjs/express'}
+2026-03-25 20:51:24,053 INFO sqlalchemy.engine.Engine ROLLBACK

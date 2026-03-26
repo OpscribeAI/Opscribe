@@ -27,27 +27,32 @@ class SemanticParser:
     dependencies such as external SDK calls, DSN strings, and port bindings.
     """
     
-    def __init__(self, base_url: str = "http://localhost:11434/v1", model: str = "llama3.2") -> None:
+    def __init__(self, base_url: str = None, model: str = None) -> None:
         """
         Initializes the Semantic Extractor to target an OpenAI-compatible endpoint.
-        
-        Args:
-            base_url (str): The OpenAI-compatible API endpoint. Defaults to local Ollama.
-            model (str): The local model to use. Defaults to 'llama3.2'.
+        Uses OpenRouter by default if OPENROUTER_API_KEY is found, falling back to local Ollama.
         """
-        api_key = os.environ.get("OPENAI_API_KEY", "ollama-local")
+        api_key = os.environ.get("OPENROUTER_API_KEY")
         
-        # Instantiate base AsyncOpenAI client
+        if api_key:
+            self.base_url = base_url or "https://openrouter.ai/api/v1"
+            self.model = model or "anthropic/claude-3-haiku"
+            logger.info(f"Initialized SemanticParser via OpenRouter using model: {self.model}")
+        else:
+            api_key = "ollama-local"
+            self.base_url = base_url or "http://localhost:11434/v1"
+            self.model = model or "llama3.2"
+            logger.info(f"Initialized SemanticParser via local Ollama using model: {self.model}")
+        
+        # Instantiate base AsyncOpenAI client targeting the inferred LLM provider
         raw_client = AsyncOpenAI(
             api_key=api_key,
-            base_url=base_url,
+            base_url=self.base_url,
             max_retries=3,
         )
         
         # Patch client with Instructor for Pydantic schema adherence
-        # Mode.JSON forces the model to generate a raw JSON string validating against the schema
         self.client = instructor.patch(raw_client, mode=instructor.Mode.JSON)
-        self.model = model
 
     async def parse_application_code(self, files: List[Dict[str, str]]) -> List[InfrastructureSignal]:
         """
