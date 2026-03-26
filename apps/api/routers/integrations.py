@@ -55,6 +55,22 @@ def save_integration(
     session: Session = Depends(get_session)
 ):
     """Save or update an integration configuration (e.g. AWS credentials)."""
+    
+    # Pre-flight Validation for AWS
+    if provider == "aws":
+        try:
+            from apps.api.ingestors.aws.detector import AWSDetector
+            region = config.credentials.get("region", "us-east-1")
+            # If standard STS fails, _get_account_id gracefully falls back to 000000000000
+            # but we explicitly want to block invalid credentials here.
+            detector = AWSDetector(region_name=region, credentials=config.credentials)
+            account_id = detector._get_account_id()
+            if account_id == "000000000000":
+                raise ValueError("Invalid IAM Role or Access Keys. Connection could not be established.")
+        except Exception as e:
+            # We raise an HTTP error so the frontend catches it and displays it
+            raise HTTPException(status_code=400, detail=str(e))
+
     statement = select(ClientIntegration).where(
         ClientIntegration.client_id == client_id,
         ClientIntegration.provider == provider

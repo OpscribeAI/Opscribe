@@ -6,10 +6,17 @@ const API_BASE = "http://localhost:8000";
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
+    initialTab?: "aws" | "repos";
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsModalProps) {
     const [activeTab, setActiveTab] = useState<"aws" | "repos">("aws");
+
+    useEffect(() => {
+        if (isOpen && initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
 
     // Real client ID — fetched from /clients/me on mount
     const [clientId, setClientId] = useState<string | null>(null);
@@ -90,14 +97,31 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             }
 
             if (Object.keys(credentialsPayload).length > 1) {
-                await fetch(`${API_BASE}/integrations/aws?client_id=${clientId}`, {
+                const res = await fetch(`${API_BASE}/integrations/aws?client_id=${clientId}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ credentials: credentialsPayload })
                 });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => null);
+                    throw new Error(errData?.detail || "Failed to validate and save AWS credentials.");
+                }
+
+                // Auto-trigger AWS-only pipeline export when creds are saved
+                await fetch(`${API_BASE}/pipeline/export`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        include_aws: true,
+                        include_github: false,
+                        aws_region: awsRegion
+                    })
+                });
             }
 
-            setAwsStatus({ type: "success", text: "Integrations saved successfully!" });
+            setAwsStatus({ type: "success", text: "Integrations saved & discovery started!" });
             setAwsAccessKey("");
             setAwsSecretKey("");
             setRoleArn("");
