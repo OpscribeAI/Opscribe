@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Settings, Database, Github, CheckCircle, AlertCircle, Play } from "lucide-react";
+import { api } from "../api/client";
 
-const MOCK_CLIENT_ID = "123e4567-e89b-12d3-a456-426614174000";
 const API_BASE = "http://localhost:8000";
+const GITHUB_APP_INSTALL_URL = "https://github.com/apps/opscribe/installations/new";
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -11,6 +12,7 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const [activeTab, setActiveTab] = useState<"aws" | "repos">("aws");
+    const [clientId, setClientId] = useState<string | null>(null);
 
     // AWS State
     const [authMethod, setAuthMethod] = useState<"role" | "keys">("role");
@@ -27,16 +29,29 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     const [loadingRepos, setLoadingRepos] = useState(false);
     const [ingesting, setIngesting] = useState<Record<string, boolean>>({});
 
+    const [availableRepos, setAvailableRepos] = useState<any[]>([]);
+    const [selectedRepo, setSelectedRepo] = useState("");
+    const [loadingAvailable, setLoadingAvailable] = useState(false);
+
     useEffect(() => {
         if (isOpen) {
-            fetchIntegrations();
-            fetchRepos();
+            api.getCurrentUser().then(user => {
+                setClientId(user.id);
+            }).catch(e => console.error("Failed to fetch client ID", e));
         }
     }, [isOpen]);
 
-    const fetchIntegrations = async () => {
+    useEffect(() => {
+        if (isOpen && clientId) {
+            fetchIntegrations(clientId);
+            fetchRepos(clientId);
+            fetchAvailableRepos(clientId);
+        }
+    }, [isOpen, clientId]);
+
+    const fetchIntegrations = async (id: string) => {
         try {
-            await fetch(`${API_BASE}/integrations/?client_id=${MOCK_CLIENT_ID}`);
+            await fetch(`${API_BASE}/integrations/?client_id=${id}`);
             // We only see what's configured, we don't get the secret keys back
             // so we don't strictly prepopulate the form with secrets, just placeholders or visual indicators.
         } catch (e) {
@@ -44,10 +59,10 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
     };
 
-    const fetchRepos = async () => {
+    const fetchRepos = async (id: string) => {
         setLoadingRepos(true);
         try {
-            const res = await fetch(`${API_BASE}/github/connected-repos?client_id=${MOCK_CLIENT_ID}`);
+            const res = await fetch(`${API_BASE}/github/connected-repos?client_id=${id}`);
             const data = await res.json();
             setRepos(data);
         } catch (e) {
@@ -57,7 +72,45 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
     };
 
+    const fetchAvailableRepos = async (id: string) => {
+        setLoadingAvailable(true);
+        try {
+            const res = await fetch(`${API_BASE}/github/repos?client_id=${id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableRepos(data);
+                if (data.length > 0) setSelectedRepo(data[0].name);
+            }
+        } catch (e) {
+            console.error("Failed to load available repos", e);
+        } finally {
+            setLoadingAvailable(false);
+        }
+    };
+
+    const handleConnectAndIngest = async () => {
+        if (!clientId || !selectedRepo) return;
+        const repoObj = availableRepos.find(r => r.name === selectedRepo);
+        const branch = repoObj?.default_branch || "main";
+        try {
+            await fetch(`${API_BASE}/github/connect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    repo_url: `https://github.com/${selectedRepo}`,
+                    target_repo_id: String(repoObj?.id || ""),
+                    default_branch: branch
+                })
+            });
+            setTimeout(() => fetchRepos(clientId), 1500);
+        } catch (e) {
+            console.error("Failed to connect", e);
+        }
+    };
+
     const handleSaveAWS = async () => {
+        if (!clientId) return;
         setIsSaving(true);
         setAwsStatus(null);
         try {
@@ -72,7 +125,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             }
 
             if (Object.keys(credentialsPayload).length > 1) {
-                await fetch(`${API_BASE}/integrations/aws?client_id=${MOCK_CLIENT_ID}`, {
+                await fetch(`${API_BASE}/integrations/aws?client_id=${clientId}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ credentials: credentialsPayload })
@@ -92,6 +145,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     };
 
     const handleForceIngest = async (repo: any) => {
+        if (!clientId) return;
         setIngesting(prev => ({ ...prev, [repo.id]: true }));
         try {
             // Re-use the existing pipeline endpoint to trigger an ingest of github and AWS 
@@ -100,12 +154,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    client_id: MOCK_CLIENT_ID,
+                    client_id: clientId,
                     include_aws: false,
                     include_github: true
                 })
             });
-            setTimeout(() => fetchRepos(), 2000); // refresh list
+            setTimeout(() => fetchRepos(clientId), 2000); // refresh list
         } catch (e) {
             console.error("Failed to ingest", e);
         } finally {
@@ -252,9 +306,37 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                     <h3 className="text-sm font-medium text-white">Connected Repositories</h3>
                                     <p className="text-xs text-gray-400 mt-1">Repositories managed by your GitHub App Installation.</p>
                                 </div>
-                                <a href="http://localhost:8000/github/login?client_id=123e4567-e89b-12d3-a456-426614174000" className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-medium border border-gray-700 flex items-center gap-2 transition-colors">
+                                <a href={clientId ? `${GITHUB_APP_INSTALL_URL}?state=${clientId}` : "#"} className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-medium border border-gray-700 flex items-center gap-2 transition-colors">
                                     <Github className="w-4 h-4" /> Install App
                                 </a>
+                            </div>
+
+                            {/* Available Repositories Selection */}
+                            <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-end gap-3">
+                                <div className="flex-1">
+                                    <label className="block text-xs text-gray-400 mb-2">Available GitHub App Repositories</label>
+                                    <select 
+                                        value={selectedRepo} 
+                                        onChange={e => setSelectedRepo(e.target.value)}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 px-3 text-sm text-gray-200 outline-none focus:border-blue-500"
+                                        disabled={loadingAvailable || availableRepos.length === 0}
+                                    >
+                                        {availableRepos.length === 0 ? (
+                                            <option>No extra repositories available...</option>
+                                        ) : (
+                                            availableRepos.map(r => (
+                                                <option key={r.id} value={r.name}>{r.name}</option>
+                                            ))
+                                        )}
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={handleConnectAndIngest}
+                                    disabled={loadingAvailable || availableRepos.length === 0}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Connect & Ingest
+                                </button>
                             </div>
 
                             {loadingRepos ? (

@@ -47,6 +47,24 @@ class S3Exporter(BaseExporter):
         self.s3 = boto3.client(**client_kwargs)
         self.bucket = env.get("OPSCRIBE_S3_BUCKET") or os.environ.get("OPSCRIBE_S3_BUCKET", "opscribe-data")
         print(f"DEBUG: S3Exporter initialized with bucket: {self.bucket}, endpoint: {endpoint_url}")
+        self._ensure_bucket()
+
+    def _ensure_bucket(self):
+        """Create the S3/MinIO bucket if it doesn't already exist."""
+        try:
+            self.s3.head_bucket(Bucket=self.bucket)
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code in ("404", "NoSuchBucket"):
+                logger.info(f"Bucket '{self.bucket}' not found, creating it...")
+                try:
+                    self.s3.create_bucket(Bucket=self.bucket)
+                    logger.info(f"Bucket '{self.bucket}' created successfully.")
+                except ClientError as create_err:
+                    logger.error(f"Failed to create bucket '{self.bucket}': {create_err}")
+                    raise
+            else:
+                logger.warning(f"Could not verify bucket '{self.bucket}': {e}")
 
     @property
     def backend_name(self) -> str:

@@ -22,6 +22,7 @@ import logging
 from typing import List, Optional
 from urllib.parse import urlparse
 
+import time
 from apps.api.ingestors.github.walker import RepositoryWalker
 from apps.api.ingestors.github.deterministic import IaCParser, DependencyParser
 from apps.api.ingestors.github.semantic import SemanticParser
@@ -56,7 +57,7 @@ class GitHubIngestionPipeline:
         self,
         repo_url: str,
         branch: str,
-        access_token: str,
+        access_token: Optional[str] = None,
         use_semantic: bool = False,
         semantic_model: str = "llama3.2",
     ):
@@ -73,25 +74,35 @@ class GitHubIngestionPipeline:
         # GitHub App installation tokens require 'x-access-token' as the username
         return parsed._replace(netloc=f"x-access-token:{self.access_token}@{parsed.netloc}").geturl()
 
+    async def get_remote_sha(self) -> Optional[str]:
+        auth_url = self._get_auth_url()
+        try:
+            process = await asyncio.create_subprocess_exec(
+                "git", "ls-remote", auth_url, self.branch,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10.0)
+            if process.returncode == 0:
+                output = stdout.decode().strip()
+                if output:
+                    return output.split()[0]
+        except Exception as e:
+            logger.warning(f"Failed to get remote SHA for {self.repo_url}: {e}")
+        return None
+
     async def run(self) -> DiscoveryResult:
         """Execute the full ingestion pipeline and return a DiscoveryResult."""
-        logger.info(f"Starting GitHub ingestion for {self.repo_url} on branch {self.branch}")
+        commit_sha = await self.get_remote_sha()
+        logger.info(f"Starting GitHub ingestion for {self.repo_url} on branch {self.branch} (SHA: {commit_sha})")
 
-        # Step 1: Walk and clone the repo using RepositoryWalker
         walker = RepositoryWalker(
             repo_url=self.repo_url,
-            branch=self.branch,
-            access_token=self.access_token,
+            branch=self.branch
         )
         
-        # We still need a temp directory to read the file contents during parsing
         with tempfile.TemporaryDirectory() as temp_dir:
-            # We must override the clone logic to keep files in temp_dir for Step 3
-            # OR better: modify RepositoryWalker to optionally take a directory.
-            # For now, to keep it simple and fix the crash, we just let walker do its thing
-            # but we need the files locally to read them.
-            
-            # Re-implementing the Step 1 clone with the CORRECT auth url
+            clone_start_time = time.time()
             auth_url = self._get_auth_url()
             process = await asyncio.create_subprocess_exec(
                 "git", "clone", "--depth=1", "--branch", self.branch, auth_url, ".",
@@ -99,29 +110,32 @@ class GitHubIngestionPipeline:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
-            stdout, stderr = await process.communicate()
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                raise Exception("Git clone timed out after 60 seconds (repository may be too large or network slow).")
+
             if process.returncode != 0:
                 raise Exception(f"Failed to clone repository: {stderr.decode()}")
 
-            logger.info(f"Cloned {self.repo_url} successfully")
+            clone_duration = round(time.time() - clone_start_time, 2)
+            logger.info(f"Cloned {self.repo_url} successfully in {clone_duration}s")
 
-            # Step 2: Use the already cloned directory to perform the walk
-            # This is slightly hacky because walker usually clones itself, 
-            # but we'll use a local instance to just filter the metadata.
-            file_set = await walker.clone_and_walk()
+            walk_start_time = time.time()
+            file_set = await walker.walk_local(temp_dir)
+            walk_duration = round(time.time() - walk_start_time, 2)
 
             logger.info(
-                f"Found {len(file_set.tier_1_files)} Tier 1 and "
+                f"Walked repository in {walk_duration}s. Found {len(file_set.tier_1_files)} Tier 1 and "
                 f"{len(file_set.tier_2_files)} Tier 2 files"
             )
 
-            # Step 3: Read file contents and parse
             all_signals: List[InfrastructureSignal] = []
 
             iac_parser = IaCParser()
             dep_parser = DependencyParser()
 
-            # Parse Tier 1 files (IaC + dependency manifests)
             for file_meta in file_set.tier_1_files:
                 full_path = os.path.join(temp_dir, file_meta.path)
                 if not os.path.isfile(full_path):
@@ -145,12 +159,11 @@ class GitHubIngestionPipeline:
 
             logger.info(f"Deterministic parsing yielded {len(all_signals)} signals")
 
-            # Step 4: Optionally parse Tier 2 files with semantic parser
             if self.use_semantic and file_set.tier_2_files:
                 try:
                     semantic_parser = SemanticParser(model=self.semantic_model)
                     tier_2_files_content = []
-                    for file_meta in file_set.tier_2_files[:20]:  # Cap at 20 files
+                    for file_meta in file_set.tier_2_files[:20]:
                         full_path = os.path.join(temp_dir, file_meta.path)
                         if not os.path.isfile(full_path):
                             continue
@@ -164,7 +177,7 @@ class GitHubIngestionPipeline:
                     if tier_2_files_content:
                         semantic_signals = await semantic_parser.parse_application_code(tier_2_files_content)
                         all_signals.extend(semantic_signals)
-                        logger.info(f"Semantic parsing yielded {len(semantic_signals)} additional signals")
+                        logger.info(f"Semantic parsing yielded {len(semantic_signals)} additional signals from app code")
                 except Exception as e:
                     logger.warning(f"Semantic parsing failed (non-fatal): {e}")
 
@@ -175,7 +188,17 @@ class GitHubIngestionPipeline:
 
             # Step 6: Convert to DiscoveryNodes + DiscoveryEdges
             nodes = self._signals_to_nodes(final_signals)
-            edges = self._infer_edges(nodes)
+            
+            # Step 7: Extrapolate Macro Components
+            macro_nodes = self._infer_macro_blocks(final_signals)
+            nodes.extend(macro_nodes)
+
+            edges = [] # Dropping Edge extraction per architectural pivot
+
+            # The validator natively supports Edge arrays being empty now
+            from apps.api.ingestors.github.validator import GraphValidator
+            validator = GraphValidator()
+            nodes, _ = validator.sanitize(nodes, edges)
 
             return DiscoveryResult(
                 source="github",
@@ -184,10 +207,13 @@ class GitHubIngestionPipeline:
                 metadata={
                     "repo_url": self.repo_url,
                     "branch": self.branch,
+                    "commit_sha": commit_sha,
                     "tier_1_count": len(file_set.tier_1_files),
                     "tier_2_count": len(file_set.tier_2_files),
                     "raw_signal_count": len(all_signals),
                     "deduplicated_count": len(final_signals),
+                    "clone_duration_sec": clone_duration,
+                    "walk_duration_sec": walk_duration,
                 },
             )
 
@@ -204,8 +230,8 @@ class GitHubIngestionPipeline:
                     display_name=sig.name,
                     node_type=node_type,
                     properties={
-                        "service": sig.component_type,
-                        "source_location": sig.source_location,
+                        "role": sig.component_type,
+                        "related_files": [sig.source_location],
                         "confidence_score": sig.confidence_score,
                         **sig.config,
                     },
@@ -217,40 +243,35 @@ class GitHubIngestionPipeline:
             )
         return nodes
 
-    def _infer_edges(self, nodes: List[DiscoveryNode]) -> List[DiscoveryEdge]:
-        """
-        Infer edges between nodes based on component relationships.
+    def _infer_macro_blocks(self, final_signals: List[InfrastructureSignal]) -> List[DiscoveryNode]:
+        """Automatically extrapolates high-level architectural blocks based on dependency gravity."""
+        nodes = []
+        is_frontend = False
+        is_backend = False
+        
+        for sig in final_signals:
+            pkg = sig.config.get("package", "").lower()
+            if pkg in ("react", "next", "vue", "angular", "svelte"):
+                is_frontend = True
+            elif pkg in ("express", "fastapi", "flask", "django", "nest"):
+                is_backend = True
 
-        Examples:
-            - Service -> depends_on -> Database
-            - Service -> depends_on -> Cache
-            - Worker -> consumes_from -> Queue
-            - API -> calls -> Service
-        """
-        edges = []
-        services = [n for n in nodes if n.properties.get("service") in ("Service", "Compute", "Worker", "API")]
-        datastores = [n for n in nodes if n.properties.get("service") in ("Database", "Cache")]
-        queues = [n for n in nodes if n.properties.get("service") == "Queue"]
+        if is_frontend:
+            nodes.append(DiscoveryNode(
+                key="macro:frontend",
+                display_name="Frontend Application",
+                node_type="Frontend Component",
+                properties={"role": "Frontend Component", "description": "Auto-classified UI application based on dependencies"},
+                source_metadata={"repo_url": self.repo_url, "extraction_method": "deterministic"}
+            ))
 
-        for svc in services:
-            for ds in datastores:
-                edges.append(
-                    DiscoveryEdge(
-                        from_node_key=svc.key,
-                        to_node_key=ds.key,
-                        edge_type="depends_on",
-                        properties={"inferred": True},
-                    )
-                )
-            for q in queues:
-                edge_type = "consumes_from" if svc.properties.get("service") == "Worker" else "publishes_to"
-                edges.append(
-                    DiscoveryEdge(
-                        from_node_key=svc.key,
-                        to_node_key=q.key,
-                        edge_type=edge_type,
-                        properties={"inferred": True},
-                    )
-                )
-
-        return edges
+        if is_backend:
+            nodes.append(DiscoveryNode(
+                key="macro:backend",
+                display_name="Backend API",
+                node_type="Backend API",
+                properties={"role": "Backend API", "description": "Auto-classified Backend routing API explicitly mapped"},
+                source_metadata={"repo_url": self.repo_url, "extraction_method": "deterministic"}
+            ))
+            
+        return nodes

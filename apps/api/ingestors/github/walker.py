@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 from apps.api.ingestors.github.models import FileMetadata, ParseableFileSet
 
 class RepositoryWalker:
-    def __init__(self, repo_url: str, branch: str, access_token: str):
+    def __init__(self, repo_url: str, branch: str, access_token: Optional[str] = None):
         self.repo_url = repo_url.rstrip("/")
         self.branch = branch
         self.access_token = access_token
@@ -130,3 +130,53 @@ class RepositoryWalker:
                     tier_2_files.append(meta)
 
             return ParseableFileSet(tier_1_files=tier_1_files, tier_2_files=tier_2_files)
+
+    async def walk_local(self, repo_dir: str) -> ParseableFileSet:
+        """Walk an already-cloned repo directory without performing a clone."""
+        tier_1_files: List[FileMetadata] = []
+        tier_2_files: List[FileMetadata] = []
+        sha_tasks = []
+        metadata_placeholders = []
+
+        for root, _, files in os.walk(repo_dir):
+            for file in files:
+                full_path = os.path.join(root, file)
+                if os.path.islink(full_path):
+                    continue
+
+                rel_path = os.path.relpath(full_path, repo_dir)
+
+                if self._should_skip(rel_path):
+                    continue
+
+                is_t1 = self._is_tier_1(file)
+                is_t2 = False if is_t1 else self._is_tier_2(rel_path, file)
+
+                if is_t1 or is_t2:
+                    size = os.path.getsize(full_path)
+                    ext = "".join(Path(file).suffixes) if Path(file).suffixes else ""
+
+                    placeholder = {
+                        "path": rel_path,
+                        "extension": ext,
+                        "size_bytes": size,
+                        "is_t1": is_t1
+                    }
+                    metadata_placeholders.append(placeholder)
+                    sha_tasks.append(self._get_last_commit_sha(repo_dir, rel_path))
+
+        shas = await asyncio.gather(*sha_tasks)
+
+        for placeholder, sha in zip(metadata_placeholders, shas):
+            meta = FileMetadata(
+                path=placeholder["path"],
+                extension=placeholder["extension"],
+                size_bytes=placeholder["size_bytes"],
+                last_commit_sha=sha
+            )
+            if placeholder["is_t1"]:
+                tier_1_files.append(meta)
+            else:
+                tier_2_files.append(meta)
+
+        return ParseableFileSet(tier_1_files=tier_1_files, tier_2_files=tier_2_files)

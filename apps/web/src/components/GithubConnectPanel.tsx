@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Github, Link as LinkIcon, CheckCircle, AlertCircle } from "lucide-react";
+import { api } from "../api/client";
 
-// For the MVP, we assume a single mock client or one retrieved from context
-const MOCK_CLIENT_ID = "123e4567-e89b-12d3-a456-426614174000";
 const API_BASE = "http://localhost:8000";
 
 export default function GithubConnectPanel() {
+    const [clientId, setClientId] = useState<string | null>(null);
     const [repoUrl, setRepoUrl] = useState<string>("");
     const [branch, setBranch] = useState<string>("main");
     const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
     const [isConnecting, setIsConnecting] = useState(false);
+
+    useEffect(() => {
+        api.getCurrentUser().then(user => setClientId(user.id)).catch(console.error);
+    }, []);
 
     const handleIngestRepo = async () => {
         if (!repoUrl) return;
@@ -20,7 +24,7 @@ export default function GithubConnectPanel() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    client_id: MOCK_CLIENT_ID,
+                    client_id: clientId,
                     repo_url: repoUrl,
                     branch: branch || "main"
                 })

@@ -5,7 +5,7 @@
  * It also allows the user to open a design and delete a design.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Network, Calendar, Trash2, Settings as SettingsIcon } from "lucide-react";
 import type { InfrastructureDashboardProps } from "../types/infrastructure";
 import SettingsModal from "./SettingsModal";
@@ -20,6 +20,18 @@ export default function InfrastructureDashboard({
   onDeleteDesign,
 }: InfrastructureDashboardProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [autoShowRepos, setAutoShowRepos] = useState(false);
+
+  // Detect GitHub App install callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("github_app_installed") === "true") {
+      setIsSettingsOpen(true);
+      setAutoShowRepos(true);
+      // Clean the URL so refreshing doesn't re-trigger
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -138,7 +150,8 @@ export default function InfrastructureDashboard({
 
       <SettingsModal
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={() => { setIsSettingsOpen(false); setAutoShowRepos(false); }}
+        autoShowRepos={autoShowRepos}
       />
     </div>
   );

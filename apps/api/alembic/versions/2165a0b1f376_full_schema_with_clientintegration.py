@@ -1,8 +1,8 @@
-"""Initial schema
+"""Full schema with ClientIntegration
 
-Revision ID: 39a90d1dd11f
+Revision ID: 2165a0b1f376
 Revises: 
-Create Date: 2026-03-18 23:11:37.875224
+Create Date: 2026-03-25 13:24:20.438478
 
 """
 from typing import Sequence, Union
@@ -13,7 +13,7 @@ import sqlmodel
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '39a90d1dd11f'
+revision: str = '2165a0b1f376'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,6 +31,19 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_client_name'), 'client', ['name'], unique=False)
+    op.create_table('client_integration',
+    sa.Column('id', sa.Uuid(), nullable=False),
+    sa.Column('client_id', sa.Uuid(), nullable=False),
+    sa.Column('provider', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
+    sa.Column('credentials', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['client_id'], ['client.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('client_id', 'provider', name='unique_client_provider_integration')
+    )
+    op.create_index(op.f('ix_client_integration_provider'), 'client_integration', ['provider'], unique=False)
     op.create_table('connected_repository',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('client_id', sa.Uuid(), nullable=False),
@@ -151,6 +164,8 @@ def downgrade() -> None:
     op.drop_table('node_type')
     op.drop_table('graph')
     op.drop_table('connected_repository')
+    op.drop_index(op.f('ix_client_integration_provider'), table_name='client_integration')
+    op.drop_table('client_integration')
     op.drop_index(op.f('ix_client_name'), table_name='client')
     op.drop_table('client')
     # ### end Alembic commands ###
