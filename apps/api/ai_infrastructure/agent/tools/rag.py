@@ -16,7 +16,7 @@ def get_rag_search_tool(session: Session, tenant_id: UUID) -> BaseTool:
         nodes, edges, or infrastructure components.
         """
         # In a full implementation, you'd import GraphRetriever here
-        from apps.api.infrastructure.rag.retriever import GraphRetriever
+        from apps.api.ai_infrastructure.rag.retriever import GraphRetriever
         
         try:
             retriever = GraphRetriever(session)
