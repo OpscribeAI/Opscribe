@@ -1,6 +1,7 @@
 from typing import Generator
 from sqlmodel import Session, create_engine
 import os
+from uuid import UUID
 
 # Use a default fallback for development if env var is not set
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://user:password@127.0.0.1:5433/opscribe")
@@ -26,3 +27,4 @@ def create_db_and_tables():
             print(f"Skipping vector extension creation: {e}")
             
     # Table creation is now handled automatically by Alembic migrations on startup
+    pass

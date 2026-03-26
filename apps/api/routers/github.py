@@ -12,8 +12,12 @@ from apps.api.ingestors.github.app_auth import get_installation_token
 from apps.api.ingestors.github.client import GitHubClient
 from apps.api.ingestors.pipeline.s3_exporter import S3Exporter
 from apps.api.ingestors.pipeline.ingestors import GitHubIngestor
+from apps.api.ingestors.github.incremental import IncrementalUpdater
 from apps.api.routers.pipeline import run_export
+import logging
 from apps.api.routers.clients import DEV_USER_ID
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/github",
@@ -222,12 +226,11 @@ async def github_webhook(
 
     # 2. Process Payload
     event = request.headers.get("X-GitHub-Event")
-    if event != "push":
-        return {"status": "ignored", "reason": "not a push event"}
+    if event not in ("push", "pull_request"):
+        return {"status": "ignored", "reason": f"unhandled event type: {event}"}
 
     payload = await request.json()
     repo_url = payload.get("repository", {}).get("html_url")
-    ref = payload.get("ref", "")
 
     installation_id = str(payload.get("installation", {}).get("id", ""))
 
@@ -242,21 +245,41 @@ async def github_webhook(
     connected_repos = session.exec(stmt).all()
 
     for connected in connected_repos:
-        if ref == f"refs/heads/{connected.default_branch}":
-            connected.ingestion_status = "pending"
-            session.add(connected)
+        # Check if this app installation matches our records
+        if event == "push":
+            ref = payload.get("ref", "")
+            if ref == f"refs/heads/{connected.default_branch}":
+                connected.ingestion_status = "pending"
+                session.add(connected)
+                
+                print(f"Scheduling background App ingestion for {connected.repo_url}")
+                ingestor = GitHubIngestor(client_id=str(connected.client_id), session=session, repo_url=connected.repo_url)
+                exporter = S3Exporter()
+                background_tasks.add_task(
+                    run_export,
+                    client_id=str(connected.client_id),
+                    ingestors=[ingestor],
+                    exporter=exporter
+                )
+        elif event == "pull_request":
+            action = payload.get("action")
+            if action in ("opened", "synchronize", "reopened"):
+                pull_number = payload.get("pull_request", {}).get("number")
+                branch_ref = payload.get("pull_request", {}).get("head", {}).get("ref")
+                
+                logger.info(f"Scheduling background incremental update for PR #{pull_number}")
+                updater = IncrementalUpdater(
+                    session=session,
+                    tenant_id=str(connected.client_id),
+                    repo_url=repo_url,
+                    installation_id=installation_id
+                )
 
-            print(f"Scheduling background App ingestion for {connected.repo_url}")
-            ingestor = GitHubIngestor(client_id=str(connected.client_id), session=session, repo_url=connected.repo_url)
-            exporter = S3Exporter()
-            background_tasks.add_task(
-                run_export,
-                client_id=str(connected.client_id),
-                ingestors=[ingestor],
-                exporter=exporter
-            )
+                background_tasks.add_task(
+                    updater.update_from_pr,
+                    pull_number=pull_number,
+                    branch_ref=branch_ref
+                )
 
     session.commit()
-    return {"status": "success", "message": "App Webhook processed"}
-
-
+    return {"status": "success", "message": f"App Webhook processed for event: {event}"}
