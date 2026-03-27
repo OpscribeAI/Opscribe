@@ -13,6 +13,6 @@ class KnowledgeBaseItem(SQLModel, table=True):
     entity_id: UUID = Field(index=True)  # Links to Node.id or Edge.id
     content: str  # The text chunk
     embedding: Vector = Field(sa_column=Column(Vector(384)))  # Gemini embeddings dimensions
-    metadata_: Dict[str, Any] = Field(default={}, sa_column=Column("metadata", JSONB))
+    metadata_: Dict[str, Any] = Field(default_factory=dict, sa_column=Column("metadata", JSONB))
     created_at: str
     updated_at: str

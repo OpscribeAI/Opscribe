@@ -4,7 +4,11 @@ from sqlmodel import Session, select
 import httpx
 import os
 import json
+import logging
 from uuid import UUID
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from apps.api.database import get_session
 from apps.api.models import Client, ConnectedRepository, PlatformConfig
@@ -57,84 +61,74 @@ async def github_app_callback(
     session: Session = Depends(get_session)
 ):
     """
-    Handles the redirect after a user installs the GitHub App on their organization/account.
-    The 'state' or 'client_id' parameter should contain the Opscribe client_id.
-    Falls back to the DEV_USER_ID if no state is provided (dev mode).
+    Handles the redirect after a user installs the GitHub App.
+    Parameterizes the redirect URL to include client_id for maintaining context.
     """
     effective_client_id = state or client_id
     if effective_client_id:
         try:
             client_uuid = UUID(effective_client_id)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid client ID parameter format")
+            raise HTTPException(status_code=400, detail="Invalid client ID format")
     else:
-        # Dev mode: use the default dev client
         client_uuid = DEV_USER_ID
 
     db_client = session.get(Client, client_uuid)
     if not db_client:
         raise HTTPException(status_code=404, detail="Client not found")
 
-    # Save the installation ID to the client metadata
     db_client.metadata_ = dict(db_client.metadata_ or {})
     db_client.metadata_["github_installation_id"] = installation_id
     session.add(db_client)
     session.commit()
 
-    return RedirectResponse(url="http://localhost:5173/?github_app_installed=true")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(url=f"{frontend_url}/?github_app_installed=true&client_id={effective_client_id}")
 
 @router.get("/repos")
 async def get_repositories(client_id: UUID, session: Session = Depends(get_session)):
-    """Fetches the repositories available to this GitHub App Installation."""
+    """Fetches available repositories for this GitHub App Installation."""
+    if os.getenv("MOCK_DEMO") == "true":
+        return [
+            {"id": "123456789", "name": "opscribe/demo-api", "default_branch": "main"},
+            {"id": "234567890", "name": "opscribe/demo-web", "default_branch": "main"},
+            {"id": "345678901", "name": "opscribe/demo-infra", "default_branch": "master"}
+        ]
+
     db_client = session.get(Client, client_id)
     if not db_client or not db_client.metadata_ or "github_installation_id" not in db_client.metadata_:
-        raise HTTPException(status_code=401, detail="GitHub App not installed for this client")
+        raise HTTPException(status_code=401, detail="GitHub App not installed")
 
     installation_id = db_client.metadata_["github_installation_id"]
-    print(f"DEBUG: Fetching repos for client {client_id} with installation {installation_id}")
 
     try:
-        # Session passed through so app_auth reads credentials from DB
         token = await get_installation_token(installation_id, str(client_id), session)
-        print(f"DEBUG: Generated installation token: {token[:5]}...")
         gh_client = GitHubClient(access_token=token)
 
         all_repos = []
         page = 1
-        
         while True:
             response = await gh_client._request_with_retry("GET", f"/installation/repositories?per_page=100&page={page}")
             data = response.json()
             page_repos = data.get("repositories", [])
-            
-            if not page_repos:
-                break
-                
+            if not page_repos: break
             all_repos.extend(page_repos)
-            
-            if len(page_repos) < 100:
-                break
-                
+            if len(page_repos) < 100: break
             page += 1
-            
-        print(f"DEBUG: Found {len(all_repos)} repositories total across {page} pages.")
-
+                
         return [
             {"id": str(r["id"]), "name": r["full_name"], "default_branch": r["default_branch"]}
             for r in all_repos
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch repositories: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/connected-repos")
 async def get_connected_repos(client_id: UUID, session: Session = Depends(get_session)):
-    """Fetches the opscribe ConnectedRepository records to check ingestion status."""
-    statement = select(ConnectedRepository).where(ConnectedRepository.client_id == client_id)
-    repos = session.exec(statement).all()
-    return repos
+    """Fetches connected repositories for status tracking."""
+    return session.exec(select(ConnectedRepository).where(ConnectedRepository.client_id == client_id)).all()
 
 from pydantic import BaseModel
-
 class ConnectRepoRequest(BaseModel):
     client_id: UUID
     repo_url: str
@@ -147,38 +141,41 @@ async def connect_repository(
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session)
 ):
-    """
-    Saves the selected repository to the database and schedules an initial baseline ingestion.
-    """
+    """Saves repo selection and triggers baseline ingestion."""
     db_client = session.get(Client, request.client_id)
     if not db_client or not db_client.metadata_ or "github_installation_id" not in db_client.metadata_:
         raise HTTPException(status_code=401, detail="GitHub App not installed")
 
-    installation_id = db_client.metadata_["github_installation_id"]
+    # Check for existing connection to avoid duplicates
+    existing = session.exec(
+        select(ConnectedRepository).where(
+            ConnectedRepository.client_id == request.client_id,
+            ConnectedRepository.repo_url == request.repo_url
+        )
+    ).first()
 
-    repo = ConnectedRepository(
-        client_id=request.client_id,
-        repo_url=request.repo_url,
-        default_branch=request.default_branch,
-        installation_id=str(installation_id),
-        target_repo_id=request.target_repo_id,
-        ingestion_status="pending"
-    )
+    if existing:
+        existing.ingestion_status = "pending"
+        existing.updated_at = datetime.utcnow()
+        repo = existing
+    else:
+        repo = ConnectedRepository(
+            client_id=request.client_id,
+            repo_url=request.repo_url,
+            default_branch=request.default_branch,
+            installation_id=db_client.metadata_["github_installation_id"],
+            target_repo_id=request.target_repo_id,
+            ingestion_status="pending"
+        )
+    
     session.add(repo)
     session.commit()
     session.refresh(repo)
 
     ingestor = GitHubIngestor(client_id=str(request.client_id), session=session, repo_url=request.repo_url)
-    exporter = S3Exporter()
-    background_tasks.add_task(
-        run_export,
-        client_id=str(request.client_id),
-        ingestors=[ingestor],
-        exporter=exporter
-    )
+    background_tasks.add_task(run_export, client_id=str(request.client_id), ingestors=[ingestor], exporter=S3Exporter())
 
-    return {"status": "success", "repository_id": repo.id}
-
+    return {"status": "success", "repo_id": str(repo.id)}
 
 @router.post("/webhook")
 async def github_webhook(
@@ -187,76 +184,38 @@ async def github_webhook(
     session: Session = Depends(get_session),
     client_id: str = Query(...)
 ):
-    """Receives GitHub App events to trigger re-ingestion for the querying client."""
+    """Processes GitHub webhooks with signature verification."""
     from apps.api.models import ClientIntegration
     from apps.api.utils.encryption import decrypt_dict
     from apps.api.routers.integrations import SENSITIVE_KEYS
-    import hmac
-    import hashlib
+    import hmac, hashlib
 
-    # 1. (Optional) Signature Verification — if client has a Webhook Secret configured
-    statement = select(ClientIntegration).where(
-        ClientIntegration.client_id == client_id,
-        ClientIntegration.provider == "github_app"
-    )
-    integration = session.exec(statement).first()
+    stmt = select(ClientIntegration).where(ClientIntegration.client_id == client_id, ClientIntegration.provider == "github_app")
+    integration = session.exec(stmt).first()
     
     if integration:
         creds = decrypt_dict(integration.credentials, SENSITIVE_KEYS)
         secret = creds.get("github_webhook_secret")
-        
         if secret:
             signature = request.headers.get("X-Hub-Signature-256")
-            if not signature:
-                raise HTTPException(status_code=401, detail="Webhook signature missing")
-            
-            body = await request.body()
-            expected_signature = "sha256=" + hmac.new(
-                secret.encode("utf-8"),
-                msg=body,
-                digestmod=hashlib.sha256
-            ).hexdigest()
-            
-            if not hmac.compare_digest(signature, expected_signature):
-                raise HTTPException(status_code=401, detail="Webhook signature invalid")
+            if not signature or not hmac.compare_digest(signature, "sha256=" + hmac.new(secret.encode(), await request.body(), hashlib.sha256).hexdigest()):
+                raise HTTPException(status_code=401)
 
-    # 2. Process Payload
     event = request.headers.get("X-GitHub-Event")
-    if event != "push":
-        return {"status": "ignored", "reason": "not a push event"}
+    if event != "push": return {"status": "ignored"}
 
     payload = await request.json()
     repo_url = payload.get("repository", {}).get("html_url")
     ref = payload.get("ref", "")
-
     installation_id = str(payload.get("installation", {}).get("id", ""))
 
-    if not repo_url or not installation_id:
-        return {"status": "ignored", "reason": "missing repo or installation id"}
-
-    stmt = select(ConnectedRepository).where(
-        ConnectedRepository.repo_url == repo_url,
-        ConnectedRepository.installation_id == installation_id,
-        ConnectedRepository.client_id == client_id
-    )
-    connected_repos = session.exec(stmt).all()
-
-    for connected in connected_repos:
+    stmt = select(ConnectedRepository).where(ConnectedRepository.repo_url == repo_url, ConnectedRepository.installation_id == installation_id, ConnectedRepository.client_id == client_id)
+    for connected in session.exec(stmt).all():
         if ref == f"refs/heads/{connected.default_branch}":
             connected.ingestion_status = "pending"
             session.add(connected)
-
-            print(f"Scheduling background App ingestion for {connected.repo_url}")
-            ingestor = GitHubIngestor(client_id=str(connected.client_id), session=session, repo_url=connected.repo_url)
-            exporter = S3Exporter()
-            background_tasks.add_task(
-                run_export,
-                client_id=str(connected.client_id),
-                ingestors=[ingestor],
-                exporter=exporter
-            )
+            ingestor = GitHubIngestor(client_id=str(client_id), session=session, repo_url=repo_url)
+            background_tasks.add_task(run_export, client_id=str(client_id), ingestors=[ingestor], exporter=S3Exporter())
 
     session.commit()
-    return {"status": "success", "message": "App Webhook processed"}
-
-
+    return {"status": "success"}

@@ -64,11 +64,16 @@ class ConnectedRepository(SQLModel, table=True):
     installation_id: str
     target_repo_id: str
     last_ingested_at: Optional[datetime] = None
-    ingestion_status: Optional[str] = None
-    created_at: datetime = Field(default_factory=utc_now)
+    ingestion_status: str = Field(default="pending") # pending, running, success, failed
+    current_step_index: int = Field(default=0)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=utc_now, sa_column_kwargs={"onupdate": utc_now})
 
     client: Client = Relationship(back_populates="connected_repositories")
+
+    __table_args__ = (
+        UniqueConstraint("client_id", "repo_url", name="unique_client_repo"),
+    )
 
 class Graph(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)

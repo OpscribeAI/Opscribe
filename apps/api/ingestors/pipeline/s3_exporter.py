@@ -44,9 +44,12 @@ class S3Exporter(BaseExporter):
         if endpoint_url:
             client_kwargs["endpoint_url"] = endpoint_url
 
-        self.s3 = boto3.client(**client_kwargs)
+        self.mock_demo = os.getenv("MOCK_DEMO", "false").lower() == "true"
+        if not self.mock_demo:
+            self.s3 = boto3.client(**client_kwargs)
+        
         self.bucket = env.get("OPSCRIBE_S3_BUCKET") or os.environ.get("OPSCRIBE_S3_BUCKET", "opscribe-data")
-        print(f"DEBUG: S3Exporter initialized with bucket: {self.bucket}, endpoint: {endpoint_url}")
+        logger.info(f"S3Exporter initialized with bucket: {self.bucket}, endpoint: {endpoint_url}, mock_demo: {self.mock_demo}")
 
     @property
     def backend_name(self) -> str:
@@ -124,7 +127,12 @@ class S3Exporter(BaseExporter):
             history_key = f"{client_id}/history/{source}_{timestamp}.json"
 
             try:
-                print(f"DEBUG: Attempting to upload {source} to s3://{self.bucket}/{latest_key}...")
+                if self.mock_demo:
+                    logger.info(f"MOCK_DEMO: Simulated upload of {source} to s3://{self.bucket}/{latest_key}")
+                    uploaded_keys.append(latest_key)
+                    continue
+
+                logger.debug(f"Uploading {source} to s3://{self.bucket}/{latest_key}")
                 self.s3.put_object(
                     Bucket=self.bucket,
                     Key=latest_key,
@@ -149,3 +157,28 @@ class S3Exporter(BaseExporter):
                 raise
                 
         return ",".join(uploaded_keys)
+
+    async def get_latest(self, client_id: str, source: str) -> Optional[dict]:
+        """Fetch the latest exported JSON from S3/MinIO for a given client and source."""
+        key = f"{client_id}/{source}_latest.json"
+        
+        if self.mock_demo:
+            # Return some mock data if in demo mode
+            return {
+                "client_id": client_id,
+                "source": source,
+                "exported_at": datetime.now(timezone.utc).isoformat(),
+                "mock_data": True,
+                "summary": {"total_nodes": 5, "total_edges": 3}
+            }
+
+        try:
+            response = self.s3.get_object(Bucket=self.bucket, Key=key)
+            content = response["Body"].read().decode("utf-8")
+            return json.loads(content)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "NoSuchKey":
+                logger.warning(f"No latest data found for {client_id}/{source} at {key}")
+                return None
+            logger.error(f"Failed to fetch {key} from S3: {e}")
+            raise

@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlmodel import Session, select
 from typing import List
+import logging
+import os
 from uuid import UUID, uuid4
 
-from apps.api.database import get_session
+from apps.api.database import get_repo
+from apps.api.repository import ClientRepository
 from apps.api.models import Client, Graph
 from apps.api import schemas
 
@@ -15,48 +18,70 @@ router = APIRouter(
     tags=["clients"]
 )
 
+@router.get("/", response_model=List[schemas.ClientRead])
+async def read_clients(
+    repo: ClientRepository = Depends(get_repo),
+    skip: int = 0,
+    limit: int = 100,
+):
+    clients = repo.list_clients(skip=skip, limit=limit)
+    return clients
+
 @router.get("/me", response_model=schemas.ClientRead)
-def get_current_user(session: Session = Depends(get_session)):
+async def get_current_user(repo: ClientRepository = Depends(get_repo)):
     """
-    Temporary placeholder for a JWT-based /me endpoint. 
+    Temporary placeholder for a JWT-based /me endpoint.
     Returns a consistent 'Dev User' client until auth is fully implemented.
     """
-    client = session.get(Client, DEV_USER_ID)
+    if os.getenv("MOCK_DEMO") == "true":
+        return Client(
+            id=DEV_USER_ID,
+            name="Dev User (Demo)",
+            metadata_={"role": "admin", "temporary_auth": True, "github_installation_id": "12345678"},
+        )
+
+    # If repo is None (shouldn't happen with Depends, but as a fallback)
+    if repo is None:
+        return Client(
+            id=DEV_USER_ID,
+            name="Dev User (Fallback)",
+            metadata_={"role": "admin", "temporary_auth": True},
+        )
+
+    client = repo.get_client(DEV_USER_ID)
     if not client:
-        client = Client(
+        new_client = Client(
             id=DEV_USER_ID,
             name="Dev User",
             metadata_={"role": "admin", "temporary_auth": True},
         )
-        session.add(client)
-        session.commit()
-        session.refresh(client)
+        client = repo.create_client(new_client) # Assuming create_client handles adding and committing
     
     return client
 
 
 @router.post("/", response_model=schemas.ClientRead)
-def create_client(client: schemas.ClientCreate, session: Session = Depends(get_session)):
+async def create_client(client: schemas.ClientCreate, repo: ClientRepository = Depends(get_repo)):
     db_client = Client.model_validate(client)
-    session.add(db_client)
-    session.commit()
-    session.refresh(db_client)
+    db_client = repo.create_client(db_client) # Assuming create_client handles adding and committing
     return db_client
 
 @router.get("/{client_id}", response_model=schemas.ClientRead)
-def read_client(client_id: UUID, session: Session = Depends(get_session)):
-    client = session.get(Client, client_id)
+async def read_client(client_id: UUID, repo: ClientRepository = Depends(get_repo)):
+    if os.getenv("MOCK_DEMO") == "true":
+        return Client(id=client_id, name="Demo Client")
+        
+    client = repo.get_client(client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return client
 
 
 @router.get("/{client_id}/graphs", response_model=List[schemas.GraphRead])
-def list_client_graphs(client_id: UUID, session: Session = Depends(get_session)):
+def list_client_graphs(client_id: UUID, repo: ClientRepository = Depends(get_repo)):
     """List all infrastructure designs (graphs) for a client. Use this for the dashboard."""
-    client = session.get(Client, client_id)
-    if not client:
-        raise HTTPException(status_code=404, detail="Client not found")
-        
-    graphs = session.exec(select(Graph).where(Graph.client_id == client_id).order_by(Graph.updated_at.desc())).all()
+    if os.getenv("MOCK_DEMO") == "true":
+        return []
+
+    graphs = repo.list_graphs(client_id)
     return graphs

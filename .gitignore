@@ -5,3 +5,7 @@ __pycache__/
 .env
 venv/
 .venv/
+*.db
+uvicorn.log
+.pytest_cache/
+.ruff_cache/
