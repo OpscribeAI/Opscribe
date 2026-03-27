@@ -1,10 +1,10 @@
 """Initial
 
 Revision ID: fac18d31e594
-Revises: 
+Revises:
 Create Date: 2026-03-20 21:58:23.962177
-
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -32,21 +32,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_client_name'), 'client', ['name'], unique=False)
-    op.create_table('knowledgebaseitem',
-    sa.Column('id', sa.Uuid(), nullable=False),
-    sa.Column('tenant_id', sa.Uuid(), nullable=False),
-    sa.Column('graph_id', sa.Uuid(), nullable=False),
-    sa.Column('entity_id', sa.Uuid(), nullable=False),
-    sa.Column('content', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('embedding', pgvector.sqlalchemy.vector.VECTOR(dim=384), nullable=True),
-    sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('created_at', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.Column('updated_at', sqlmodel.sql.sqltypes.AutoString(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_knowledgebaseitem_entity_id'), 'knowledgebaseitem', ['entity_id'], unique=False)
-    op.create_index(op.f('ix_knowledgebaseitem_graph_id'), 'knowledgebaseitem', ['graph_id'], unique=False)
-    op.create_index(op.f('ix_knowledgebaseitem_tenant_id'), 'knowledgebaseitem', ['tenant_id'], unique=False)
     op.create_table('client_integration',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('client_id', sa.Uuid(), nullable=False),
@@ -182,10 +167,6 @@ def downgrade() -> None:
     op.drop_table('connected_repository')
     op.drop_index(op.f('ix_client_integration_provider'), table_name='client_integration')
     op.drop_table('client_integration')
-    op.drop_index(op.f('ix_knowledgebaseitem_tenant_id'), table_name='knowledgebaseitem')
-    op.drop_index(op.f('ix_knowledgebaseitem_graph_id'), table_name='knowledgebaseitem')
-    op.drop_index(op.f('ix_knowledgebaseitem_entity_id'), table_name='knowledgebaseitem')
-    op.drop_table('knowledgebaseitem')
     op.drop_index(op.f('ix_client_name'), table_name='client')
     op.drop_table('client')
     # ### end Alembic commands ###

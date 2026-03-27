@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List, Dict, Any, Optional
+import logging
 from pydantic import BaseModel
 
 from apps.api.database import get_session
 from apps.api.models import ClientIntegration
 from apps.api.utils.encryption import encrypt_dict
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/integrations",
@@ -51,7 +54,7 @@ def get_integrations(
     return results
 
 @router.post("/{provider}")
-def save_integration(
+async def save_integration(
     provider: str,
     config: IntegrationConfig,
     client_id: str,
@@ -77,7 +80,7 @@ def save_integration(
     # Pre-flight validation & Auto-Discovery for GitHub App
     elif provider == "github_app":
         try:
-            import requests
+            import httpx
             import time
             import jwt
             
@@ -87,58 +90,50 @@ def save_integration(
             if not app_id or not pem:
                 raise ValueError("Missing App ID or Private Key.")
                 
-            # Users frequently mis-copy PEM strings (e.g. 4 hyphens instead of 5)
+            # Normalise PEM format
             if pem.startswith("----BEGIN") and not pem.startswith("-----BEGIN"):
                 pem = "-" + pem
                 config.credentials["github_private_key"] = pem
-            
-            # Normalise any literal \n sequences
             pem = pem.replace("\\n", "\n")
             
-            # This will naturally throw an exception if the PEM format is entirely broken
+            # Ensure valid signature
             try:
                 now = int(time.time())
-                payload = {
-                    "iat": now - 60,
-                    "exp": now + (10 * 60),
-                    "iss": app_id
-                }
+                payload = {"iat": now - 60, "exp": now + (10 * 60), "iss": app_id}
                 jwt_token = jwt.encode(payload, pem, algorithm="RS256")
             except Exception as e:
-                raise ValueError(f"Failed to parse Private Key: {str(e)}")
+                raise ValueError(f"Failed to generate JWT with provided Private Key: {str(e)}")
                 
             headers = {
                 "Authorization": f"Bearer {jwt_token}",
-                "Accept": "application/vnd.github.v3+json"
+                "Accept": "application/vnd.github.v3+json",
+                "X-GitHub-Api-Version": "2022-11-28"
             }
             
-            response = requests.get("https://api.github.com/app/installations", headers=headers, timeout=10)
-            if response.status_code == 200:
-                installations = response.json()
-                if installations and len(installations) > 0:
-                    installation_id = str(installations[0].get("id"))
-                    from apps.api.models import Client
-                    db_client = session.get(Client, client_id)
-                    if db_client:
-                        db_client.metadata_ = dict(db_client.metadata_ or {})
-                        db_client.metadata_["github_installation_id"] = installation_id
-                        session.add(db_client)
-                        print(f"DEBUG: Automatically linked existing GitHub installation {installation_id}")
-            else:
-                # If GitHub returns ANY HTTP error (404 for bad App ID, 401 for bad signature, etc.)
-                try:
-                    err_msg = response.json().get("message", "Unknown error")
-                except:
-                    err_msg = response.text
-                print(f"DEBUG: GitHub API returned {response.status_code}: {err_msg}")
-                raise ValueError(f"GitHub Authentication Failed: {err_msg}")
+            # Use async httpx client instead of blocking requests
+            async with httpx.AsyncClient() as client:
+                response = await client.get("https://api.github.com/app/installations", headers=headers, timeout=10.0)
                 
+                if response.status_code == 200:
+                    installations = response.json()
+                    if installations:
+                        # Auto-link the primary installation ID found
+                        installation_id = str(installations[0].get("id"))
+                        from apps.api.models import Client
+                        db_client = session.get(Client, client_id)
+                        if db_client:
+                            db_client.metadata_ = dict(db_client.metadata_ or {})
+                            db_client.metadata_["github_installation_id"] = installation_id
+                            session.add(db_client)
+                            logger.info(f"Automatically linked GitHub installation {installation_id} for client {client_id}")
+                else:
+                    detail = response.json().get("message", "Unknown GitHub Error") if response.status_code != 401 else "Invalid App ID or Private Key"
+                    raise ValueError(f"GitHub Validation Failed: {detail}")
+                    
         except ValueError as ve:
             raise HTTPException(status_code=400, detail=str(ve))
         except Exception as e:
-            # We only swallow generic ConnectionErrors or timeouts to avoid blocking users
-            # if they lose wifi, but explicitly caught ValueErrors (like bad JSON or HTTP errors) bubble up!
-            print(f"DEBUG: GitHub App pre-flight network hit generic exception: {e}")
+            logger.error(f"GitHub App pre-flight validation failed: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to validate credentials: {str(e)}")
 
     statement = select(ClientIntegration).where(

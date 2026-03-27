@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from typing import List, Dict, Optional, Any
 
 import hcl2
@@ -9,29 +10,37 @@ from apps.api.ingestors.github.models import InfrastructureSignal
 
 logger = logging.getLogger(__name__)
 
-# Inlined dependency mapping for known infrastructure archetypes
 DEPENDENCY_MAPPING: Dict[str, str] = {
     "redis": "Cache",
     "redis-py": "Cache",
     "ioredis": "Cache",
     "memcached": "Cache",
+    "postgresql": "Database",
+    "mongodb": "Database",
+    "mysql": "Database",
+    "mariadb": "Database",
     "mongoose": "Database",
     "sequelize": "Database",
     "sqlalchemy": "Database",
     "pg": "Database",
     "psycopg2": "Database",
-    "mysql": "Database",
-    "mongodb": "Database",
+    "mysql2": "Database",
     "celery": "Worker",
     "rq": "Worker",
+    "bull": "Worker",
     "amqplib": "Queue",
     "pika": "Queue",
+    "kafkajs": "Queue",
+    "confluent-kafka": "Queue",
     "aws-sdk": "Cloud-Service",
     "boto3": "Cloud-Service",
+    "@aws-sdk/client-s3": "Storage",
+    "@google-cloud/storage": "Storage",
+    "firebase-admin": "Cloud-Service",
 }
 
 class IaCParser:
-    """Parses explicit Infrastructure-as-Code (IaC) files like Terraform and Docker Compose deterministically."""
+    """Parses explicit Infrastructure-as-Code (IaC) files like Terraform, Kubernetes, and Docker Compose."""
     
     def __init__(self) -> None:
         self.yaml = YAML(typ="safe")
@@ -59,6 +68,67 @@ class IaCParser:
             logger.warning(f"Failed to parse Terraform file %s: %s", file_path, e)
         return signals
 
+    def parse_kubernetes(self, file_path: str, content: str) -> List[InfrastructureSignal]:
+        signals: List[InfrastructureSignal] = []
+        try:
+            docs = list(self.yaml.load_all(content))
+            for doc in docs:
+                if not doc or not isinstance(doc, dict):
+                    continue
+                
+                kind = doc.get("kind")
+                metadata = doc.get("metadata", {})
+                name = metadata.get("name", "unknown")
+                
+                if kind in ("Deployment", "StatefulSet", "DaemonSet", "Job"):
+                    signals.append(InfrastructureSignal(
+                        component_type="Compute",
+                        name=name,
+                        config={"kind": kind, "api_version": doc.get("apiVersion")},
+                        source_location=file_path,
+                        confidence_score=1.0
+                    ))
+                elif kind == "Service":
+                    signals.append(InfrastructureSignal(
+                        component_type="API",
+                        name=name,
+                        config={"kind": kind, "service_type": doc.get("spec", {}).get("type")},
+                        source_location=file_path,
+                        confidence_score=0.9
+                    ))
+                elif kind == "Ingress":
+                    signals.append(InfrastructureSignal(
+                        component_type="API",
+                        name=name,
+                        config={"kind": kind, "rules": doc.get("spec", {}).get("rules")},
+                        source_location=file_path,
+                        confidence_score=1.0
+                    ))
+        except Exception as e:
+            logger.warning(f"Failed to parse Kubernetes file %s: %s", file_path, e)
+        return signals
+
+    def parse_github_actions(self, file_path: str, content: str) -> List[InfrastructureSignal]:
+        signals: List[InfrastructureSignal] = []
+        try:
+            parsed = self.yaml.load(content)
+            if not parsed or not isinstance(parsed, dict):
+                return signals
+                
+            name = parsed.get("name", os.path.basename(file_path))
+            jobs = parsed.get("jobs", {})
+            
+            signals.append(InfrastructureSignal(
+                component_type="Worker",
+                name=f"workflow-{name}",
+                config={"job_count": len(jobs), "triggers": list(parsed.get("on", {}).keys() if isinstance(parsed.get("on"), dict) else [str(parsed.get("on"))])},
+                source_location=file_path,
+                confidence_score=0.7
+            ))
+        except Exception as e:
+            logger.warning(f"Failed to parse GitHub Actions file %s: %s", file_path, e)
+        return signals
+
     def parse_compose(self, file_path: str, content: str) -> List[InfrastructureSignal]:
         signals: List[InfrastructureSignal] = []
         try:
@@ -69,7 +139,7 @@ class IaCParser:
             services = parsed.get("services", {})
             for svc_name, svc_config in services.items():
                 image = svc_config.get("image", "")
-                component_type = self._map_image_to_component(image) or "Service"
+                component_type = self._map_image_to_component(image) or "Compute"
                 
                 signals.append(
                     InfrastructureSignal(
@@ -89,7 +159,7 @@ class IaCParser:
         db_types = {"aws_db_instance", "aws_rds_cluster", "google_sql_database_instance", "azurerm_postgresql_server"}
         cache_types = {"aws_elasticache_cluster", "redis_instance"}
         compute_types = {"aws_instance", "aws_ecs_service", "google_compute_instance", "kubernetes_deployment"}
-        queue_types = {"aws_sqs_queue", "rabbitmq_vhost"}
+        queue_types = {"aws_sqs_queue", "rabbitmq_vhost", "aws_sns_topic"}
         
         if tf_type in db_types: return "Database"
         if tf_type in cache_types: return "Cache"
@@ -113,7 +183,7 @@ class IaCParser:
         return None
 
 class DependencyParser:
-    """Parses application manifests (e.g. package.json, requirements.txt) to infer infrastructure needs."""
+    """Parses application manifests and config files to infer infrastructure needs."""
     
     def parse_package_json(self, file_path: str, content: str) -> List[InfrastructureSignal]:
         signals: List[InfrastructureSignal] = []
@@ -165,17 +235,34 @@ class DependencyParser:
             logger.warning(f"Failed to parse requirements.txt %s: %s", file_path, e)
         return signals
 
+    def parse_env_file(self, file_path: str, content: str) -> List[InfrastructureSignal]:
+        """Identify potential infrastructure dependencies from environment variable keys."""
+        signals: List[InfrastructureSignal] = []
+        try:
+            lines = content.splitlines()
+            for line in lines:
+                if "=" not in line or line.startswith("#"):
+                    continue
+                key = line.split("=")[0].strip().upper()
+                
+                if any(x in key for x in ["DATABASE_URL", "DB_HOST", "POSTGRES"]):
+                    signals.append(InfrastructureSignal("Database", f"env-{key}", {"variable": key}, file_path, 0.6))
+                elif any(x in key for x in ["REDIS", "CACHE_HOST"]):
+                    signals.append(InfrastructureSignal("Cache", f"env-{key}", {"variable": key}, file_path, 0.6))
+                elif any(x in key for x in ["AWS_S3", "BUCKET_NAME", "STORAGE"]):
+                    signals.append(InfrastructureSignal("Storage", f"env-{key}", {"variable": key}, file_path, 0.6))
+                elif any(x in key for x in ["STRIPE", "SENDGRID", "TWILIO"]):
+                    signals.append(InfrastructureSignal("Cloud-Service", f"env-{key}", {"variable": key}, file_path, 0.6))
+        except Exception:
+            pass
+        return signals
+
     @staticmethod
     def _check_mapping(package_name: str) -> Optional[str]:
         pkg_lower = package_name.lower()
-        
-        # O(1) exact match lookup
         if pkg_lower in DEPENDENCY_MAPPING:
             return DEPENDENCY_MAPPING[pkg_lower]
-            
-        # O(N) fallback for partial matches (e.g., redis-client -> Cache)
         for known_pkg, component_type in DEPENDENCY_MAPPING.items():
             if known_pkg in pkg_lower:
                 return component_type
-        
         return None

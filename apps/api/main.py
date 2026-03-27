@@ -8,7 +8,6 @@ import os
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from apps.api.database import create_db_and_tables
-from apps.api.routers import clients, graphs, nodes, edges, discovery, github, pipeline, admin, rag
 from apps.api.routers.admin import bootstrap_github_app_from_env
 from alembic.config import Config
 from alembic import command
@@ -22,13 +21,28 @@ def run_migrations():
     try:
         command.upgrade(alembic_cfg, "head")
         print("Database migrations applied successfully.")
-    except Exception as e:
-        print(f"Error running database migrations: {e}")
+    except BaseException as e:
+        msg = str(e)
+        # When a migration file was removed/renamed in the repo, Alembic can fail
+        # while trying to locate the revision recorded in `alembic_version`.
+        # For local dev, we can safely "stamp" the current DB to head so the API can start.
+        if "Can't locate revision identified by" in msg:
+            print(f"Database migration revision mismatch: {e}")
+            print("Stamping migration state to head and continuing...")
+            command.stamp(alembic_cfg, "head")
+            print("Migration state stamped to head.")
+            return
+        raise
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load resources
     print("Starting Opscribe API...")
+    if os.getenv("MOCK_DEMO") == "true":
+        print("MOCK_DEMO=true: Skipping database/table creation and migrations.")
+        yield
+        return
+
     create_db_and_tables()
     run_migrations()
     # Seed GitHub App credentials from env into DB on first boot
@@ -46,6 +60,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+# Note: this file is touched intentionally during local debugging to trigger Uvicorn reload.
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,7 +75,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from apps.api.routers import clients, graphs, nodes, edges, discovery, github, pipeline, admin, integrations
+from apps.api.routers import clients, graphs, nodes, edges, discovery, github, pipeline, admin, integrations, ingestion_intelligence, rag
 
 app.include_router(clients.router)
 app.include_router(graphs.router)
@@ -71,6 +86,7 @@ app.include_router(discovery.router)
 app.include_router(pipeline.router)
 app.include_router(admin.router)
 app.include_router(integrations.router)
+app.include_router(ingestion_intelligence.router)
 app.include_router(rag.router)
 
 @app.get("/health")

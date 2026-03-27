@@ -57,29 +57,29 @@ class GitHubIngestor(BaseIngestor):
 
         results: List[DiscoveryResult] = []
         for repo in repos:
-            print(f"DEBUG: Processing repo: {repo.repo_url}")
+            logger.debug(f"Processing repo: {repo.repoUrl if hasattr(repo, 'repoUrl') else repo.repo_url}")
             repo.ingestion_status = "running"
             self.session.add(repo)
             self.session.commit()
 
             try:
-                print(f"DEBUG: Fetching installation token for ID: {repo.installation_id}")
+                logger.debug(f"Fetching installation token for ID: {repo.installation_id}")
                 token = await get_installation_token(repo.installation_id, str(self.client_id), self.session)
-                print("DEBUG: Token fetched successfully. Starting GitHubIngestionPipeline...")
+                logger.debug("Token fetched successfully. Starting GitHubIngestionPipeline...")
                 pipeline = GitHubIngestionPipeline(
                     repo_url=repo.repo_url,
                     branch=repo.default_branch or "main",
                     access_token=token,
                 )
                 result = await pipeline.run()
-                print(f"DEBUG: Pipeline run completed. Nodes: {len(result.nodes)}, Edges: {len(result.edges)}")
+                logger.debug(f"Pipeline run completed. Nodes: {len(result.nodes)}, Edges: {len(result.edges)}")
                 results.append(result)
                 
                 repo.ingestion_status = "success"
                 repo.last_ingested_at = utc_now()
                 self.session.add(repo)
                 self.session.commit()
-                print(f"DEBUG: Database updated for repo {repo.repo_url}")
+                logger.debug(f"Database updated for repo {repo.repo_url}")
 
                 logger.info(
                     f"GitHub ingestion for {repo.repo_url}: "

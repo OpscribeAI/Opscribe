@@ -95,12 +95,12 @@ async def get_repositories(client_id: UUID, session: Session = Depends(get_sessi
         raise HTTPException(status_code=401, detail="GitHub App not installed for this client")
 
     installation_id = db_client.metadata_["github_installation_id"]
-    print(f"DEBUG: Fetching repos for client {client_id} with installation {installation_id}")
+    logger.debug(f"Fetching repos for client {client_id} with installation {installation_id}")
 
     try:
         # Session passed through so app_auth reads credentials from DB
         token = await get_installation_token(installation_id, str(client_id), session)
-        print(f"DEBUG: Generated installation token: {token[:5]}...")
+        logger.debug(f"Generated installation token: {token[:5]}...")
         gh_client = GitHubClient(access_token=token)
 
         all_repos = []
@@ -121,7 +121,7 @@ async def get_repositories(client_id: UUID, session: Session = Depends(get_sessi
                 
             page += 1
             
-        print(f"DEBUG: Found {len(all_repos)} repositories total across {page} pages.")
+        logger.debug(f"Found {len(all_repos)} repositories total across {page} pages.")
 
         return [
             {"id": str(r["id"]), "name": r["full_name"], "default_branch": r["default_branch"]}
@@ -252,7 +252,7 @@ async def github_webhook(
                 connected.ingestion_status = "pending"
                 session.add(connected)
                 
-                print(f"Scheduling background App ingestion for {connected.repo_url}")
+                logger.info(f"Scheduling background App ingestion for {connected.repo_url}")
                 ingestor = GitHubIngestor(client_id=str(connected.client_id), session=session, repo_url=connected.repo_url)
                 exporter = S3Exporter()
                 background_tasks.add_task(

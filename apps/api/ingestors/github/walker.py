@@ -1,120 +1,99 @@
 import os
-import asyncio
+import shutil
 import tempfile
-import fnmatch
+import asyncio
 import subprocess
-from typing import List, Tuple, Optional
-from pathlib import Path
+import logging
+from typing import List, Set, Optional
+from dataclasses import dataclass
 
-from apps.api.ingestors.github.models import FileMetadata, ParseableFileSet
-from apps.api.ingestors.github.utils import _get_auth_url
+logger = logging.getLogger(__name__)
+
+@dataclass
+class FileMetadata:
+    path: str
+    extension: str
+    size_bytes: int
+
+@dataclass
+class ParseableFileSet:
+    tier_1_files: List[FileMetadata]  # High priority (IaC, manifests)
+    tier_2_files: List[FileMetadata]  # App code (for semantic parsing)
 
 class RepositoryWalker:
-    async def _run_command(self, *args, cwd: Optional[str] = None) -> Tuple[str, str, int]:
+    """Clones a repository and identifies files relevant for architectural discovery."""
+    
+    def __init__(self, repo_url: str, branch: str = "main", auth_url: Optional[str] = None):
+        self.repo_url = repo_url
+        self.branch = branch
+        self.auth_url = auth_url or repo_url
+        
+    async def walk(self, temp_dir: str) -> ParseableFileSet:
+        await self._clone_repo(temp_dir)
+        
+        tier_1 = []
+        tier_2 = []
+        
+        for root, dirs, files in os.walk(temp_dir):
+            dirs[:] = [d for d in dirs if not d.startswith('.') and d not in ('node_modules', 'venv', 'dist', 'build')]
+            
+            for file in files:
+                full_path = os.path.join(root, file)
+                rel_path = os.path.relpath(full_path, temp_dir)
+                ext = os.path.splitext(file)[1].lower()
+                
+                try:
+                    size = os.path.getsize(full_path)
+                except OSError:
+                    continue
+                
+                meta = FileMetadata(path=rel_path, extension=ext, size_bytes=size)
+                
+                if self._is_tier_1(rel_path, file, ext):
+                    tier_1.append(meta)
+                elif self._is_tier_2(rel_path, file, ext):
+                    tier_2.append(meta)
+                    
+        return ParseableFileSet(tier_1_files=tier_1, tier_2_files=tier_2)
+
+    async def _clone_repo(self, dest: str):
+        """Clones the repository using git CLI with short-lived token auth."""
+        logger.info(f"Cloning {self.repo_url} (branch: {self.branch}) into {dest}")
+        
+        cmd = ["git", "clone", "--depth", "1", "--branch", self.branch, self.auth_url, dest]
+        
         process = await asyncio.create_subprocess_exec(
-            *args,
-            cwd=cwd,
+            *cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        return stdout.decode('utf-8', errors='replace').strip(), stderr.decode('utf-8', errors='replace').strip(), process.returncode or 0
+        
+        if process.returncode != 0:
+            error_msg = stderr.decode()
+            logger.error(f"Git clone failed: {error_msg}")
+            raise Exception(f"Failed to clone repository: {error_msg}")
 
-    async def _get_last_commit_sha(self, repo_dir: str, file_path: str) -> str:
-        stdout, _, _ = await self._run_command("git", "log", "-n", "1", "--pretty=format:%H", "--", file_path, cwd=repo_dir)
-        return stdout
-
-    def _is_tier_1(self, filename: str) -> bool:
-        patterns = [
-            "Dockerfile", "docker-compose*.yml", "*.tf", "*.bicep",
-            "*.yaml", "*.yml", "*requirements*.txt", "package.json", "pyproject.toml"
-        ]
-        return any(fnmatch.fnmatch(filename, p) for p in patterns)
-
-    def _is_tier_2(self, rel_path: str, filename: str) -> bool:
-        doc_patterns = ["*.py", "*.ts", "*.go", "*.java"]
-        if not any(fnmatch.fnmatch(filename, p) for p in doc_patterns):
-            return False
+    def _is_tier_1(self, path: str, filename: str, ext: str) -> bool:
+        """Identify critical infrastructure and configuration files (Tier 1)."""
+        if ext in ('.tf', '.hcl'): return True
+        if 'docker-compose' in filename and ext in ('.yml', '.yaml'): return True
+        
+        if 'k8s' in path or 'kubernetes' in path:
+            if ext in ('.yml', '.yaml'): return True
             
-        if os.path.dirname(rel_path) == "":
-            return True
-            
-        allowed_dirs = {"infra", "deploy", "config", "src"}
-        parts = Path(rel_path).parts
-        if parts and parts[0] in allowed_dirs:
-            return True
-            
+        if '.github/workflows' in path and ext in ('.yml', '.yaml'): return True
+        
+        if filename in ('package.json', 'requirements.txt', 'go.mod', 'Gemfile', 'pom.xml'): return True
+        
+        if filename.startswith('.env'): return True
+        
         return False
 
-    def _is_tier_3(self, rel_path: str) -> bool:
-        """Tier 3: Skip defaults (modules, git internals, tests, lockfiles)"""
-        skip_dirs = {".git", "node_modules", "venv", "__pycache__", ".venv"}
-        parts = Path(rel_path).parts
-        if any(d in skip_dirs for d in parts):
+    def _is_tier_2(self, path: str, filename: str, ext: str) -> bool:
+        """Identify application source code files for semantic analysis (Tier 2)."""
+        if ext in ('.py', '.js', '.ts', '.tsx', '.go', '.java', '.rb', '.php'):
+            if 'test' in filename.lower() or 'spec' in filename.lower():
+                return False
             return True
-            
-        path_lower = str(rel_path).lower()
-        if "test" in path_lower:
-            return True
-        if "lock" in path_lower:
-            return True
-            
         return False
-
-    async def clone_and_walk(self, repo_url: str, branch: str, access_token: str) -> ParseableFileSet:
-        auth_url = _get_auth_url(repo_url, access_token)
-        with tempfile.TemporaryDirectory() as temp_dir:
-            stdout, stderr, rc = await self._run_command(
-                "git", "clone", "--depth=1", "--branch", branch, auth_url, ".", 
-                cwd=temp_dir
-            )
-            if rc != 0:
-                raise Exception(f"Failed to clone repository: {stderr}")
-
-            tier_1_files: List[FileMetadata] = []
-            tier_2_files: List[FileMetadata] = []
-            
-            # Tasks for fetching SHAs concurrently to speed up the loop
-            sha_tasks = []
-            metadata_placeholders = []
-
-            for root, _, files in os.walk(temp_dir):
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(full_path, temp_dir)
-                    
-                    if self._is_tier_3(rel_path):
-                        continue
-
-                    is_t1 = self._is_tier_1(file)
-                    is_t2 = False if is_t1 else self._is_tier_2(rel_path, file)
-
-                    if is_t1 or is_t2:
-                        size = os.path.getsize(full_path)
-                        ext = "".join(Path(file).suffixes) if Path(file).suffixes else ""
-                        
-                        placeholder = {
-                            "path": rel_path,
-                            "extension": ext,
-                            "size_bytes": size,
-                            "is_t1": is_t1
-                        }
-                        metadata_placeholders.append(placeholder)
-                        sha_tasks.append(self._get_last_commit_sha(temp_dir, rel_path))
-
-            # Fetch all SHAs concurrently
-            shas = await asyncio.gather(*sha_tasks)
-
-            for placeholder, sha in zip(metadata_placeholders, shas):
-                meta = FileMetadata(
-                    path=placeholder["path"],
-                    extension=placeholder["extension"],
-                    size_bytes=placeholder["size_bytes"],
-                    last_commit_sha=sha
-                )
-                if placeholder["is_t1"]:
-                    tier_1_files.append(meta)
-                else:
-                    tier_2_files.append(meta)
-
-            return ParseableFileSet(tier_1_files=tier_1_files, tier_2_files=tier_2_files)
