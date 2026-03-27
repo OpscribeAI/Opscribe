@@ -164,3 +164,26 @@ async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], sessio
         # Only close if we created it
         if session is None:
             _session.close()
+
+async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_id: str, session: Optional[Session] = None):
+    """
+    Wrapper to ingest discovery results for multiple clients.
+    Updates the original client plus two hardcoded demo clients.
+    """
+    demo_clients = [
+        "123e4567-e89b-12d3-a456-426614174000",
+        "00000000-0000-0000-0000-000000000000"
+    ]
+    
+    # Unique set of clients (to avoid double-ingesting if original is one of the demos)
+    target_clients = list(set([original_client_id] + demo_clients))
+    
+    print(f"DEBUG: Triggering ingestion for clients: {target_clients}")
+    
+    for client_id in target_clients:
+        try:
+            # We use a fresh nested session or similar if provided, but ingest_to_graph handles its own session if None
+            await ingest_to_graph(client_id=client_id, results=results, session=session)
+        except Exception as e:
+            logger.error(f"Failed to ingest for client {client_id}: {e}")
+            print(f"ERROR: Failed ingestion for {client_id}: {e}")
