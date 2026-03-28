@@ -7,8 +7,8 @@ import App from './App.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Auth0Provider
-      domain={import.meta.env.VITE_AUTH0_DOMAIN}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      domain="dev-xuzgmpozdykvxgyp.us.auth0.com"
+      clientId="BVQBker56bNozDLWvYuJRCMzFzzj1oZZ"
       authorizationParams={{
         redirect_uri: window.location.origin,
         audience: "https://dev-xuzgmpozdykvxgyp.us.auth0.com/api/v2/"
