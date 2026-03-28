@@ -7,6 +7,12 @@ from uuid import UUID
 from sqlmodel import Session, select
 from apps.api.database import get_session
 from apps.api.models import Client
+import certifi
+
+# Fix SSL certificates for macOS users who haven't run "Install Certificates.command"
+# PyJWT uses urllib under the hood, so pointing it to certifi's bundle is the cleanest fix.
+os.environ["SSL_CERT_FILE"] = certifi.where()
+os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
 
 AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN", "dev-xuzgmpozdykvxgyp.us.auth0.com")
 API_AUDIENCE = os.environ.get("AUTH0_API_AUDIENCE", "https://api.opscribe.com")

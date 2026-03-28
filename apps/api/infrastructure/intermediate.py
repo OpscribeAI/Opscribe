@@ -170,13 +170,9 @@ async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_
     Wrapper to ingest discovery results for multiple clients.
     Updates the original client plus two hardcoded demo clients.
     """
-    demo_clients = [
-        "123e4567-e89b-12d3-a456-426614174000",
-        "00000000-0000-0000-0000-000000000000"
-    ]
     
     # Unique set of clients (to avoid double-ingesting if original is one of the demos)
-    target_clients = list(set([original_client_id] + demo_clients))
+    target_clients = list(set([original_client_id]))
     
     print(f"DEBUG: Triggering ingestion for clients: {target_clients}")
     
