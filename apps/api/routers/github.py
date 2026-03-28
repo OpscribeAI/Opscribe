@@ -15,7 +15,6 @@ from apps.api.ingestors.pipeline.ingestors import GitHubIngestor
 from apps.api.ingestors.github.incremental import IncrementalUpdater
 from apps.api.routers.pipeline import run_export
 import logging
-from apps.api.routers.clients import DEV_USER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +61,7 @@ async def github_app_callback(
 ):
     """
     Handles the redirect after a user installs the GitHub App on their organization/account.
-    The 'state' or 'client_id' parameter should contain the Opscribe client_id.
-    Falls back to the DEV_USER_ID if no state is provided (dev mode).
+    The 'state' or 'client_id' parameter MUST contain the Opscribe `client_id` to link the installation.
     """
     effective_client_id = state or client_id
     if effective_client_id:
@@ -72,8 +70,10 @@ async def github_app_callback(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid client ID parameter format")
     else:
-        # Dev mode: use the default dev client
-        client_uuid = DEV_USER_ID
+        raise HTTPException(
+            status_code=400, 
+            detail="Missing client_id or state parameter. Opscribe GitHub App must be installed via the dashboard Setup URL."
+        )
 
     db_client = session.get(Client, client_uuid)
     if not db_client:

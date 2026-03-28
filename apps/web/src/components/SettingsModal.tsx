@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Settings, Database, Github, CheckCircle, AlertCircle, Play, Copy, Check } from "lucide-react";
+import { authFetch as fetch } from "../api/client";
 
 const API_BASE = "http://localhost:8000";
 
