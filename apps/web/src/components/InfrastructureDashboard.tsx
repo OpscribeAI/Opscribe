@@ -7,12 +7,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Plus, Network, Calendar, Trash2, Settings as SettingsIcon, Database, Github, LogOut } from "lucide-react";
+import { Plus, Network, Calendar, Trash2, Settings as SettingsIcon, Database, Github, LogOut, CheckCircle } from "lucide-react";
 import type { InfrastructureDashboardProps } from "../types/infrastructure";
 import SettingsModal from "./SettingsModal";
 import { authFetch as fetch } from "../api/client";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "/api";
 
 export default function InfrastructureDashboard({
   designs,
@@ -27,7 +27,8 @@ export default function InfrastructureDashboard({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"aws" | "repos" | undefined>(undefined);
 
-  const [hasIntegrations, setHasIntegrations] = useState<boolean | null>(null);
+  const [awsConnected, setAwsConnected] = useState<boolean | null>(null);
+  const [githubConnected, setGithubConnected] = useState<boolean | null>(null);
 
   // Fetch integration status to determine if we should show the Onboarding Hero
   useEffect(() => {
@@ -35,15 +36,21 @@ export default function InfrastructureDashboard({
       .then(r => r.json())
       .then(d => {
         Promise.all([
-          fetch(`${API_BASE}/integrations/?client_id=${d.id}`).then(r => r.json()),
-          fetch(`${API_BASE}/github/connected-repos?client_id=${d.id}`).then(r => r.json())
-        ]).then(([ints, repos]) => {
-          const awsCount = Array.isArray(ints) ? ints.length : 0;
-          const repoCount = Array.isArray(repos) ? repos.length : 0;
-          setHasIntegrations(awsCount > 0 || repoCount > 0);
-        }).catch(() => setHasIntegrations(true)); // Hide onboarding on error
-      }).catch(() => setHasIntegrations(true));
-  }, [isSettingsOpen]); // Re-check when Settings Modal closes
+          fetch(`${API_BASE}/integrations/?client_id=${d.id}`).then(r => r.json())
+        ]).then(([ints]) => {
+          const hasAws = Array.isArray(ints) && ints.some(i => i.provider === 'aws');
+          const hasGh = Array.isArray(ints) && ints.some(i => i.provider === 'github_app');
+          setAwsConnected(hasAws);
+          setGithubConnected(hasGh);
+        }).catch(() => {
+          setAwsConnected(false);
+          setGithubConnected(false);
+        });
+      }).catch(() => {
+        setAwsConnected(false);
+        setGithubConnected(false);
+      });
+  }, [isSettingsOpen]);
 
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -60,7 +67,7 @@ export default function InfrastructureDashboard({
   };
 
   // The Onboarding Hero View for NET NEW clients
-  if (designs.length === 0 && hasIntegrations === false && !loading) {
+  if (designs.length === 0 && (awsConnected === false || githubConnected === false) && !loading) {
     return (
       <div className="min-h-screen bg-gray-950 p-8 flex items-center justify-center">
         <div className="max-w-3xl w-full text-center">
@@ -72,10 +79,15 @@ export default function InfrastructureDashboard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button
               onClick={() => openSettings("aws")}
-              className="flex flex-col items-center justify-center p-10 bg-gray-900 border border-gray-800 hover:border-blue-500 rounded-2xl transition-all group"
+              className={`flex flex-col items-center justify-center p-10 bg-gray-900 border rounded-2xl transition-all group relative overflow-hidden ${awsConnected ? 'border-green-500/50 bg-green-500/5' : 'border-gray-800 hover:border-blue-500'}`}
             >
-              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Database className="w-8 h-8 text-blue-400" />
+              {awsConnected && (
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider backdrop-blur-sm border border-green-500/20">
+                  <CheckCircle className="w-3 h-3" /> Connected
+                </div>
+              )}
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform ${awsConnected ? 'bg-green-500/20 scale-105' : 'bg-blue-500/10 group-hover:scale-110'}`}>
+                <Database className={`w-8 h-8 ${awsConnected ? 'text-green-400' : 'text-blue-400'}`} />
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Connect AWS</h3>
               <p className="text-sm text-gray-500 text-center">
@@ -85,10 +97,15 @@ export default function InfrastructureDashboard({
 
             <button
               onClick={() => openSettings("repos")}
-              className="flex flex-col items-center justify-center p-10 bg-gray-900 border border-gray-800 hover:border-purple-500 rounded-2xl transition-all group"
+              className={`flex flex-col items-center justify-center p-10 bg-gray-900 border rounded-2xl transition-all group relative overflow-hidden ${githubConnected ? 'border-green-500/50 bg-green-500/5' : 'border-gray-800 hover:border-purple-500'}`}
             >
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Github className="w-8 h-8 text-purple-400" />
+              {githubConnected && (
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider backdrop-blur-sm border border-green-500/20">
+                  <CheckCircle className="w-3 h-3" /> Connected
+                </div>
+              )}
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform ${githubConnected ? 'bg-green-500/20 scale-105' : 'bg-purple-500/10 group-hover:scale-110'}`}>
+                <Github className={`w-8 h-8 ${githubConnected ? 'text-green-400' : 'text-purple-400'}`} />
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Connect GitHub</h3>
               <p className="text-sm text-gray-500 text-center">
