@@ -48,6 +48,7 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
     const [ghWebhookSecret, setGhWebhookSecret] = useState("");
     const [isSavingGh, setIsSavingGh] = useState(false);
     const [ghStatus, setGhStatus] = useState<{ type: "success" | "error", text: string } | null>(null);
+    const [integrations, setIntegrations] = useState<any[]>([]);
     const [copiedStates, setCopiedStates] = useState<Record<string, boolean>>({});
 
     // Data Lake State
@@ -77,18 +78,22 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
     const [ingesting, setIngesting] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        if (isOpen) {
-            fetchIntegrations();
+        if (isOpen && clientId) {
+            fetchIntegrations(clientId);
             fetchRepos();
             fetchDatalake();
         }
-    }, [isOpen]);
+    }, [isOpen, clientId]);
 
-    const fetchIntegrations = async () => {
+    const fetchIntegrations = async (cid: string) => {
         try {
-            await fetch(`${API_BASE}/integrations/?client_id=${clientId}`);
+            const res = await fetch(`${API_BASE}/integrations/?client_id=${cid}`);
+            if (res.ok) {
+                const data = await res.json();
+                setIntegrations(data);
+            }
         } catch (e) {
-            console.error("Failed to load integrations", e);
+            console.error("Failed to fetch integrations", e);
         }
     };
 
@@ -125,6 +130,7 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
     };
 
     const handleSaveAWS = async () => {
+        if (!clientId) return;
         setIsSaving(true);
         setAwsStatus(null);
         try {
@@ -137,24 +143,34 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
                 credentialsPayload.aws_secret_access_key = awsSecretKey;
             }
 
-            if (Object.keys(credentialsPayload).length > 1) {
-                const res = await fetch(`${API_BASE}/integrations/aws?client_id=${clientId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ credentials: credentialsPayload })
-                });
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => null);
-                    throw new Error(errData?.detail || "Failed to validate and save AWS credentials.");
-                }
-                await fetch(`${API_BASE}/pipeline/export`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ client_id: clientId, include_aws: true, include_github: false, aws_region: awsRegion })
-                });
+            // Always hit the /integrations/aws endpoint to save the region and/or new credentials
+            const res = await fetch(`${API_BASE}/integrations/aws?client_id=${clientId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credentials: credentialsPayload })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null);
+                throw new Error(errData?.detail || "Failed to validate and save AWS credentials.");
             }
+
+            // Always trigger a fresh ingestion immediately (backend merges existing creds safely)
+            await fetch(`${API_BASE}/pipeline/export`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    include_aws: true,
+                    include_github: false,
+                    aws_region: awsRegion
+                })
+            });
+
             setAwsStatus({ type: "success", text: "Integrations saved & discovery started!" });
             setAwsAccessKey(""); setAwsSecretKey(""); setRoleArn(""); setExternalId("");
+
+            fetchIntegrations(clientId);
         } catch (e: any) {
             setAwsStatus({ type: "error", text: e.message || "Failed to save integrations" });
         } finally {
@@ -231,23 +247,70 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
                     {activeTab === "aws" && (
                         <div className="space-y-6">
                             <div>
-                                <h3 className="text-sm font-medium text-white mb-3">AWS Discovery Setup</h3>
-                                <div className="flex bg-gray-800 p-1 rounded-lg mb-5 w-max">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-medium text-white">AWS Discovery Setup</h3>
+                                    {integrations.find(i => i.provider === 'aws') && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider">
+                                            <CheckCircle className="w-3 h-3" /> Connected
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex bg-gray-800 p-1 rounded-lg mb-4 w-max">
                                     <button onClick={() => setAuthMethod("role")} className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${authMethod === 'role' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>Cross-Account Role (Recommended)</button>
                                     <button onClick={() => setAuthMethod("keys")} className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${authMethod === 'keys' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'}`}>Direct Access Keys</button>
                                 </div>
                                 {authMethod === "role" ? (
                                     <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div><label className="block text-xs text-gray-500 mb-1">IAM Role ARN *</label><input type="text" value={roleArn} onChange={e => setRoleArn(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="arn:aws:iam::123456789012:role/Opscribe" /></div>
-                                        <div><label className="block text-xs text-gray-500 mb-1">External ID (Optional)</label><input type="text" value={externalId} onChange={e => setExternalId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="Secure token..." /></div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">IAM Role ARN *</label>
+                                            <input
+                                                type="text"
+                                                value={roleArn}
+                                                onChange={e => setRoleArn(e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none"
+                                                placeholder={integrations.find(i => i.provider === 'aws')?.configured_keys.includes('role_arn') ? "(Keep blank to reuse existing Role ARN)" : "arn:aws:iam::123456789012:role/Opscribe"}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">External ID (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={externalId}
+                                                onChange={e => setExternalId(e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none"
+                                                placeholder={integrations.find(i => i.provider === 'aws')?.configured_keys.includes('external_id') ? "(Keep blank to reuse existing External ID)" : "Secure token..."}
+                                            />
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div><label className="block text-xs text-gray-500 mb-1">Access Key ID *</label><input type="text" value={awsAccessKey} onChange={e => setAwsAccessKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="AKIA..." /></div>
-                                        <div><label className="block text-xs text-gray-500 mb-1">Secret Access Key *</label><input type="password" value={awsSecretKey} onChange={e => setAwsSecretKey(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="••••••••••••••••" /></div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Access Key ID *</label>
+                                            <input
+                                                type="text"
+                                                value={awsAccessKey}
+                                                onChange={e => setAwsAccessKey(e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none"
+                                                placeholder={integrations.find(i => i.provider === 'aws')?.configured_keys.includes('aws_access_key_id') ? "(Keep blank to reuse existing Keys)" : "AKIA..."}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Secret Access Key *</label>
+                                            <input
+                                                type="password"
+                                                value={awsSecretKey}
+                                                onChange={e => setAwsSecretKey(e.target.value)}
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none"
+                                                placeholder={integrations.find(i => i.provider === 'aws')?.configured_keys.includes('aws_secret_access_key') ? "••••••••••••••••" : "••••••••••••••••"}
+                                            />
+                                        </div>
                                     </div>
                                 )}
-                                <div><label className="block text-xs text-gray-500 mb-1">Default AWS Region</label><input type="text" value={awsRegion} onChange={e => setAwsRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="us-east-1" /></div>
+                                <div>
+                                    <label className="block text-xs text-gray-500 mb-1">Default AWS Region</label>
+                                    <input type="text" value={awsRegion} onChange={e => setAwsRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="us-east-1" />
+                                    <p className="mt-2 text-[10px] text-gray-500 italic">Sensitive fields (Keys, ARN) are encrypted. Leave them blank to maintain your current configuration.</p>
+                                </div>
                             </div>
                             <hr className="border-gray-800" />
                             <div className="bg-blue-900/10 border border-blue-900/40 rounded-lg p-4">
@@ -272,7 +335,9 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
                                 </div>
                             )}
                             <div className="flex justify-end pt-4">
-                                <button onClick={handleSaveAWS} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">{isSaving ? "Saving..." : "Save Configuration and Ingest New Data"}</button>
+                                <button onClick={handleSaveAWS} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+                                    {isSaving ? "Saving..." : "Save Configuration and Ingest New Data"}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -325,13 +390,30 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
                                 <div className="flex items-start gap-3">
                                     <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</div>
                                     <div className="flex-1">
-                                        <h3 className="text-sm font-semibold text-white mb-4">Configure App Credentials</h3>
-                                        <div className="grid grid-cols-2 gap-4 mb-4">
-                                            <div><label className="block text-xs text-gray-500 mb-1">App Name (Slug) *</label><input type="text" value={ghAppSlug} onChange={e => setGhAppSlug(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="my-company-opscribe" /></div>
-                                            <div><label className="block text-xs text-gray-500 mb-1">App ID *</label><input type="text" value={ghAppId} onChange={e => setGhAppId(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="123456" /></div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-sm font-semibold text-white">Configure App Credentials</h3>
+                                            {integrations.find(i => i.provider === 'github_app') && (
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-400 uppercase tracking-wider">
+                                                    <CheckCircle className="w-3 h-3" /> Connected
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="mb-4"><label className="block text-xs text-gray-500 mb-1">Webhook Secret (Optional)</label><input type="password" value={ghWebhookSecret} onChange={e => setGhWebhookSecret(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder="Enter the secret you created..." /></div>
-                                        <div className="mb-4"><label className="block text-xs text-gray-500 mb-1">Private Key (PEM) *</label><textarea value={ghPrivateKey} onChange={e => setGhPrivateKey(e.target.value)} rows={4} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-xs font-mono text-gray-300 focus:border-blue-500 outline-none" placeholder={"-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"} /></div>
+                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                            <div><label className="block text-xs text-gray-500 mb-1">App Name (Slug) *</label><input type="text" value={ghAppSlug} onChange={e => setGhAppSlug(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder={integrations.find(i => i.provider === 'github_app')?.configured_keys.includes('github_app_slug') ? "(Using existing App Slug)" : "my-company-opscribe"} /></div>
+                                            <div><label className="block text-xs text-gray-500 mb-1">App ID *</label><input type="text" value={ghAppId} onChange={e => setGhAppId(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder={integrations.find(i => i.provider === 'github_app')?.configured_keys.includes('github_app_id') ? "(Using existing App ID)" : "123456"} /></div>
+                                        </div>
+                                        <div className="mb-4"><label className="block text-xs text-gray-500 mb-1">Webhook Secret (Optional)</label><input type="password" value={ghWebhookSecret} onChange={e => setGhWebhookSecret(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-sm text-white focus:border-blue-500 outline-none" placeholder={integrations.find(i => i.provider === 'github_app')?.configured_keys.includes('github_webhook_secret') ? "••••••••••••••••" : "Enter logic secret..."} /></div>
+                                        <div className="mb-4">
+                                            <label className="block text-xs text-gray-500 mb-1">Private Key (PEM) *</label>
+                                            <textarea
+                                                value={ghPrivateKey}
+                                                onChange={e => setGhPrivateKey(e.target.value)}
+                                                rows={4}
+                                                className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-[10px] font-mono text-gray-300 focus:border-blue-500 outline-none"
+                                                placeholder={integrations.find(i => i.provider === 'github_app')?.configured_keys.includes('github_private_key') ? "-----BEGIN RSA PRIVATE KEY-----\n(Already configured)\n-----END RSA PRIVATE KEY-----" : "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"}
+                                            />
+                                            <p className="mt-2 text-[10px] text-gray-500 italic">Private keys are encrypted. Leave blank to maintain current configuration.</p>
+                                        </div>
                                         {ghStatus && (
                                             <div className={`p-4 mb-4 rounded-lg text-sm flex items-start gap-3 ${ghStatus.type === 'success' ? 'bg-green-900/20 text-green-400 border border-green-800/50' : 'bg-red-900/20 text-red-400 border border-red-800/50'}`}>
                                                 {ghStatus.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
@@ -479,6 +561,6 @@ export default function SettingsModal({ isOpen, onClose, initialTab }: SettingsM
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

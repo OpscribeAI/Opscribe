@@ -20,7 +20,7 @@ import ReactFlow, {
 } from "reactflow";
 import type { Node, Edge, Connection, ReactFlowInstance } from "reactflow";
 import "reactflow/dist/style.css";
-import { ArrowLeft, Bot } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import dagre from "dagre";
 
 import NodePalette from "./NodePalette";
@@ -129,9 +129,6 @@ export default function InfrastructureDesigner({
     useState<Node<InfrastructureNodeData> | null>(null);
   const [loadingVisualization, setLoadingVisualization] = useState(false);
   const fetchedGraphIdRef = useRef<string | null>(null);
-
-  // UI State for toggling the AI Assistant panel on the right sidebar
-  const [showRagPanel, setShowRagPanel] = useState(false);
 
   // Stores the anonymous session ID for RAG context tracking
   const [clientId, setClientId] = useState<string>("");
@@ -264,7 +261,6 @@ export default function InfrastructureDesigner({
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node<InfrastructureNodeData>) => {
       setSelectedNode(node);
-      setShowRagPanel(false); // Hide RAG panel if we are directly clicking a node
       deselectEdges();
     },
     [deselectEdges],
@@ -344,7 +340,6 @@ export default function InfrastructureDesigner({
   return (
     <div className="flex h-screen bg-gray-950">
       <NodePalette onDragStart={onDragStart} />
-      {/* <GithubConnectPanel /> */}
 
       <div className="flex-1 relative" ref={reactFlowWrapper}>
         {loadingVisualization && (
@@ -422,7 +417,7 @@ export default function InfrastructureDesigner({
           nodes={nodes}
           edges={edges}
           designName={designName}
-          onClose={() => setShowRagPanel(false)}
+          onClose={() => {}}
         />
       ) : (
         <PropertiesPanel
