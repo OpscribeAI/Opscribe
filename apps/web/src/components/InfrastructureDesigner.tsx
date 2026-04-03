@@ -24,7 +24,7 @@ import { ArrowLeft, Bot } from "lucide-react";
 import dagre from "dagre";
 
 import NodePalette from "./NodePalette";
-import GithubConnectPanel from "./GithubConnectPanel";
+// import GithubConnectPanel from "./GithubConnectPanel";
 import PropertiesPanel from "./PropertiesPanel";
 import RAGChat from "./RAGChat";
 import InfrastructureNode from "./InfrastructureNode";
@@ -344,7 +344,7 @@ export default function InfrastructureDesigner({
   return (
     <div className="flex h-screen bg-gray-950">
       <NodePalette onDragStart={onDragStart} />
-      <GithubConnectPanel />
+      {/* <GithubConnectPanel /> */}
 
       <div className="flex-1 relative" ref={reactFlowWrapper}>
         {loadingVisualization && (
@@ -409,25 +409,13 @@ export default function InfrastructureDesigner({
             </p>
           </div>
         </div>
-        <div className="absolute top-4 right-4 z-10">
-          <button
-            onClick={() => setShowRagPanel(!showRagPanel)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors shadow-lg ${showRagPanel
-              ? "bg-blue-600 border-blue-500 text-white"
-              : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700 hover:text-white"
-              }`}
-          >
-            <Bot className={`w-4 h-4 ${showRagPanel ? "text-white" : "text-blue-400"}`} />
-            <span className="text-sm font-medium">AI Assistant</span>
-          </button>
-        </div>
       </div>
 
       {/* 
           Right Side Sidebar 
           Dynamically switches between the selected node properties and the AI Assistant chat.
       */}
-      {showRagPanel ? (
+      {!selectedNode ? (
         <RAGChat
           clientId={clientId}
           graphId={design?.id || ""}
