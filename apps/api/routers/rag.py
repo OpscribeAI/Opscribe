@@ -159,7 +159,9 @@ def _handle_traversal(
             "### RULES:\n"
             "- You are READ-ONLY. You never modify the graph.\n"
             "- If a node is not found, suggest similar names.\n"
-            "- Explain WHY the dependency/impact chain matters, not just WHAT it is."
+            "- Explain WHY the dependency/impact chain matters, not just WHAT it is.\n\n"
+            "### CRITICAL TOOL BEHAVIOR:\n"
+            "If you decide to invoke a tool, you MUST output ONLY the tool call. Do not provide any conversational text, explanations, or thoughts before calling the tool. Just directly execute the tool."
         )
 
         agent = create_agent(

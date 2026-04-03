@@ -78,7 +78,9 @@ class AgentOrchestrator:
             "graph traversal tools over RAG search.\n\n"
             "### STAKEHOLDER DOCS\n"
             "If asked for a stakeholder doc or runbook, generate a highly structured "
-            "markdown response highlighting business impact."
+            "markdown response highlighting business impact.\n\n"
+            "### CRITICAL TOOL BEHAVIOR:\n"
+            "If you decide to invoke a tool, you MUST output ONLY the tool call. Do not provide any conversational text, explanations, or thoughts before calling the tool. Just directly execute the tool."
         )
 
         self.agent = create_agent(
