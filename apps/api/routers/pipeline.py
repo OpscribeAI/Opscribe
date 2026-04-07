@@ -31,11 +31,14 @@ class ExportRequest(BaseModel):
     include_aws: bool = True
     include_github: bool = True
     aws_region: str = "us-east-1"
+    graph_name: Optional[str] = None
+    repositories: Optional[List[str]] = None
 
 class GithubLinkRequest(BaseModel):
     client_id: UUID
     repo_url: str
     branch: Optional[str] = "main"
+    graph_name: Optional[str] = None
 
 class ExportResponse(BaseModel):
     status: str
@@ -45,6 +48,7 @@ async def run_export(
     client_id: str,
     ingestors: List[BaseIngestor],
     exporter: BaseExporter,
+    graph_name: Optional[str] = None,
 ):
     try:
         results = []
@@ -61,7 +65,7 @@ async def run_export(
             combined_results = await exporter.load_current(client_id=client_id)
             if combined_results:
                 with Session(engine) as session:
-                    await ingest_to_all_clients(results=combined_results, original_client_id=client_id, session=session)
+                    await ingest_to_all_clients(results=combined_results, original_client_id=client_id, graph_name=graph_name, session=session)
             else:
                 logger.warning(f"No current state results found for client {client_id} despite successful export.")
     except Exception as e:
@@ -94,7 +98,13 @@ async def trigger_export(
         ingestors.append(AWSIngestor(region_name=request.aws_region, credentials=aws_creds))
     
     if request.include_github:
-        ingestors.append(GitHubIngestor(client_id=request.client_id, session=session))
+        if request.repositories:
+            # If specific repositories are requested, we could either loop or update GitHubIngestor
+            # For now, let's create a GitHubIngestor for each specific repo
+            for repo_url in request.repositories:
+                ingestors.append(GitHubIngestor(client_id=request.client_id, session=session, repo_url=repo_url))
+        else:
+            ingestors.append(GitHubIngestor(client_id=request.client_id, session=session))
 
     exporter = S3Exporter()
 
@@ -103,6 +113,7 @@ async def trigger_export(
         client_id=request.client_id,
         ingestors=ingestors,
         exporter=exporter,
+        graph_name=request.graph_name,
     )
 
     return ExportResponse(
@@ -146,6 +157,7 @@ async def trigger_github_link(
         client_id=str(request.client_id),
         ingestors=ingestors,
         exporter=exporter,
+        graph_name=request.graph_name,
     )
 
     return ExportResponse(

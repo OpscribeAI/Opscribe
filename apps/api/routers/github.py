@@ -172,14 +172,9 @@ async def connect_repository(
     session.commit()
     session.refresh(repo)
 
-    ingestor = GitHubIngestor(client_id=str(request.client_id), session=session, repo_url=request.repo_url)
-    exporter = S3Exporter()
-    background_tasks.add_task(
-        run_export,
-        client_id=str(request.client_id),
-        ingestors=[ingestor],
-        exporter=exporter
-    )
+    session.add(repo)
+    session.commit()
+    session.refresh(repo)
 
     return {"status": "success", "repository_id": repo.id}
 

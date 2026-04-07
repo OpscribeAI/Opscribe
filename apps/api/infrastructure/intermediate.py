@@ -37,12 +37,13 @@ def _result_to_dict(result: DiscoveryResult) -> dict:
         "metadata": result.metadata,
     }
 
-async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], session: Optional[Session] = None):
+async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], graph_name: Optional[str] = None, session: Optional[Session] = None):
     """
     Main entry point for discovery-to-graph ingestion.
     Runs the modular IR pipeline and saves the results to the specified client's graph.
     """
     client_id_str = str(client_id)
+    target_graph_name = graph_name or "Infrastructure Design"
     
     # 1. Prepare raw data
     raw_github = {"sources": []}
@@ -65,17 +66,17 @@ async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], sessio
         _session = Session(engine)
     
     try:
-        # Get or Create Graph for this client
+        # Get or Create Graph for this client with the specified name
         graph = _session.exec(
-            select(Graph).where(Graph.client_id == client_id_str, Graph.name == "Infrastructure Design")
+            select(Graph).where(Graph.client_id == client_id_str, Graph.name == target_graph_name)
         ).first()
         
         if not graph:
-            print(f"DEBUG: Creating 'Infrastructure Design' graph for {client_id_str}")
+            print(f"DEBUG: Creating '{target_graph_name}' graph for {client_id_str}")
             graph = Graph(
                 client_id=client_id_str,
-                name="Infrastructure Design",
-                description="Automatically generated infrastructure map"
+                name=target_graph_name,
+                description=f"Automatically generated infrastructure map for {target_graph_name}"
             )
             _session.add(graph)
             _session.commit()
@@ -169,7 +170,7 @@ async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], sessio
         if session is None:
             _session.close()
 
-async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_id: str, session: Optional[Session] = None):
+async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_id: str, graph_name: Optional[str] = None, session: Optional[Session] = None):
     """
     Wrapper to ingest discovery results for multiple clients.
     Updates the original client plus two hardcoded demo clients.
@@ -183,7 +184,7 @@ async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_
     for client_id in target_clients:
         try:
             # We use a fresh nested session or similar if provided, but ingest_to_graph handles its own session if None
-            await ingest_to_graph(client_id=client_id, results=results, session=session)
+            await ingest_to_graph(client_id=client_id, results=results, graph_name=graph_name, session=session)
         except Exception as e:
             logger.error(f"Failed to ingest for client {client_id}: {e}")
             print(f"ERROR: Failed ingestion for {client_id}: {e}")

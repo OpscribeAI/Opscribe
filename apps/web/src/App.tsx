@@ -1,18 +1,23 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { setApiToken } from "./api/client";
+import { setApiToken, authFetch as fetch } from "./api/client";
 import InfrastructureDashboard from "./components/InfrastructureDashboard";
 import InfrastructureDesigner from "./components/InfrastructureDesigner";
 import LandingPage from "./components/landing/LandingPage";
+import Sidebar from "./components/Sidebar";
+import LoadingProgress from "./components/LoadingProgress";
+import SettingsModal from "./components/SettingsModal";
 import { useInfrastructureDesigns } from "./hooks/useInfrastructureDesigns";
 import type { Node, Edge } from "reactflow";
 import type { InfrastructureNodeData } from "./types/infrastructure";
 import "./App.css";
 
+const API_BASE = "/api";
+
 type View = "dashboard" | "designer";
 
 function App() {
-  const { isLoading, isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useAuth0();
+  const { isLoading, isAuthenticated, loginWithRedirect, getAccessTokenSilently, user, logout } = useAuth0();
   const [tokenReady, setTokenReady] = useState(false);
 
   useEffect(() => {
@@ -30,32 +35,71 @@ function App() {
 
   const [view, setView] = useState<View>("dashboard");
   const [activeDesignId, setActiveDesignId] = useState<string | null>(null);
-  const [createPending, setCreatePending] = useState(false);
+  
+  // Ingestion State
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestingGraphName, setIngestingGraphName] = useState("");
+  const [prevDesignsCount, setPrevDesignsCount] = useState(0);
+
+  // Connection State
+  const [awsConnected, setAwsConnected] = useState<boolean | null>(null);
+  const [githubConnected, setGithubConnected] = useState<boolean | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"aws" | "repos" | undefined>(undefined);
 
   const {
     designs,
     loading: designsLoading,
     error,
-    createDesignAsync,
     updateDesign,
     deleteDesign,
     getDesign,
-  } = useInfrastructureDesigns(tokenReady, view === "dashboard");
+  } = useInfrastructureDesigns(tokenReady, true); // Always poll while in app
 
-  const handleCreateNew = useCallback(() => {
-    setCreatePending(true);
-    createDesignAsync()
-      .then((design) => {
-        setActiveDesignId(design.id);
-        setView("designer");
+  // Fetch connection status
+  const fetchConnections = useCallback(() => {
+    if (!tokenReady) return;
+    fetch(`${API_BASE}/clients/me`)
+      .then(r => r.json())
+      .then(d => {
+        fetch(`${API_BASE}/integrations/?client_id=${d.id}`)
+          .then(r => r.json())
+          .then(ints => {
+            const hasAws = Array.isArray(ints) && ints.some((i: any) => i.provider === 'aws');
+            const hasGh = Array.isArray(ints) && ints.some((i: any) => i.provider === 'github_app');
+            setAwsConnected(hasAws);
+            setGithubConnected(hasGh);
+          });
       })
-      .finally(() => setCreatePending(false));
-  }, [createDesignAsync]);
+      .catch(() => {
+        setAwsConnected(false);
+        setGithubConnected(false);
+      });
+  }, [tokenReady]);
+
+  useEffect(() => {
+    fetchConnections();
+  }, [fetchConnections, isSettingsOpen]);
+
+  // Watch for new designs to stop ingestion
+  useEffect(() => {
+    if (isIngesting && designs.length > prevDesignsCount) {
+      setIsIngesting(false);
+      setIngestingGraphName("");
+    }
+    setPrevDesignsCount(designs.length);
+  }, [designs, isIngesting, prevDesignsCount]);
 
   const handleOpenDesign = useCallback((id: string) => {
     setActiveDesignId(id);
     setView("designer");
   }, []);
+
+  const handleStartIngestion = useCallback((name: string) => {
+    setIngestingGraphName(name);
+    setIsIngesting(true);
+    setPrevDesignsCount(designs.length);
+  }, [designs.length]);
 
   const handleBack = useCallback(
     (
@@ -71,6 +115,11 @@ function App() {
     },
     [activeDesignId, updateDesign]
   );
+
+  const openSettings = (tab?: "aws" | "repos") => {
+    setSettingsTab(tab);
+    setIsSettingsOpen(true);
+  };
 
   const activeDesign = activeDesignId ? getDesign(activeDesignId) : null;
 
@@ -91,25 +140,51 @@ function App() {
     );
   }
 
-  if (view === "designer" && activeDesignId) {
-    return (
-      <InfrastructureDesigner
-        design={activeDesign ?? { id: activeDesignId, name: "Untitled Infrastructure", updatedAt: new Date().toISOString(), nodes: [], edges: [] }}
-        onBack={handleBack}
-      />
-    );
-  }
-
   return (
-    <InfrastructureDashboard
-      designs={designs}
-      loading={designsLoading}
-      error={error}
-      createPending={createPending}
-      onCreateNew={handleCreateNew}
-      onOpenDesign={handleOpenDesign}
-      onDeleteDesign={deleteDesign}
-    />
+    <div className="flex h-screen bg-[#020617] overflow-hidden">
+      <Sidebar 
+        designs={designs}
+        activeDesignId={activeDesignId}
+        onOpenDesign={handleOpenDesign}
+        onNewDesign={() => setView("dashboard")}
+        onOpenSettings={openSettings}
+        awsConnected={awsConnected}
+        githubConnected={githubConnected}
+        user={user}
+        onLogout={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+      />
+      
+      <main className="flex-1 relative overflow-hidden">
+        {view === "designer" && activeDesignId ? (
+          <InfrastructureDesigner
+            design={activeDesign ?? { id: activeDesignId, name: "Untitled Infrastructure", updatedAt: new Date().toISOString(), nodes: [], edges: [] }}
+            onBack={handleBack}
+          />
+        ) : (
+          <div className="h-full overflow-y-auto custom-scrollbar">
+            <InfrastructureDashboard
+              designs={designs}
+              loading={designsLoading}
+              error={error}
+              onOpenDesign={handleOpenDesign}
+              onDeleteDesign={deleteDesign}
+              onIngestionTriggered={handleStartIngestion}
+            />
+          </div>
+        )}
+      </main>
+
+      <LoadingProgress 
+        isVisible={isIngesting} 
+        graphName={ingestingGraphName} 
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        initialTab={settingsTab}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+    </div>
   );
 }
 
