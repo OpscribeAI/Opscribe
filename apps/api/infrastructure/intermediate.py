@@ -11,38 +11,32 @@ from apps.api.ai_infrastructure.rag.embedding_sync import re_embed_graph
 
 logger = logging.getLogger(__name__)
 
-def _result_to_dict(result: DiscoveryResult) -> dict:
-    """Serialize a DiscoveryResult to a JSON-serializable dict."""
-    return {
-        "source": result.source,
-        "nodes": [
-            {
-                "key": n.key,
-                "display_name": n.display_name,
-                "node_type": n.node_type,
-                "properties": n.properties,
-                "source_metadata": n.source_metadata,
-            }
-            for n in result.nodes
-        ],
-        "edges": [
-            {
-                "from_node_key": e.from_node_key,
-                "to_node_key": e.to_node_key,
-                "edge_type": e.edge_type,
-                "properties": e.properties,
-            }
-            for e in result.edges
-        ],
-        "metadata": result.metadata,
-    }
+async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_id: str, graph_name: Optional[str] = None, session: Optional[Session] = None):
+    """
+    Wrapper to ingest discovery results for multiple clients.
+    Updates the original client plus two hardcoded demo clients.
+    """
+    
+    # Unique set of clients (to avoid double-ingesting if original is one of the demos)
+    target_clients = list(set([original_client_id]))
+    
+    print(f"DEBUG: Triggering ingestion for clients: {target_clients}")
+    
+    for client_id in target_clients:
+        try:
+            # We use a fresh nested session or similar if provided, but ingest_to_graph handles its own session if None
+            await ingest_to_graph(client_id=client_id, results=results, graph_name=graph_name, session=session)
+        except Exception as e:
+            logger.error(f"Failed to ingest for client {client_id}: {e}")
+            print(f"ERROR: Failed ingestion for {client_id}: {e}")
 
-async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], session: Optional[Session] = None):
+async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], graph_name: Optional[str] = None, session: Optional[Session] = None):
     """
     Main entry point for discovery-to-graph ingestion.
     Runs the modular IR pipeline and saves the results to the specified client's graph.
     """
     client_id_str = str(client_id)
+    target_graph_name = graph_name or "Infrastructure Design"
     
     # 1. Prepare raw data
     raw_github = {"sources": []}
@@ -65,17 +59,17 @@ async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], sessio
         _session = Session(engine)
     
     try:
-        # Get or Create Graph for this client
+        # Get or Create Graph for this client with the specified name
         graph = _session.exec(
-            select(Graph).where(Graph.client_id == client_id_str, Graph.name == "Infrastructure Design")
+            select(Graph).where(Graph.client_id == client_id_str, Graph.name == target_graph_name)
         ).first()
         
         if not graph:
-            print(f"DEBUG: Creating 'Infrastructure Design' graph for {client_id_str}")
+            print(f"DEBUG: Creating '{target_graph_name}' graph for {client_id_str}")
             graph = Graph(
                 client_id=client_id_str,
-                name="Infrastructure Design",
-                description="Automatically generated infrastructure map"
+                name=target_graph_name,
+                description=f"Automatically generated infrastructure map for {target_graph_name}"
             )
             _session.add(graph)
             _session.commit()
@@ -169,21 +163,28 @@ async def ingest_to_graph(client_id: str, results: List[DiscoveryResult], sessio
         if session is None:
             _session.close()
 
-async def ingest_to_all_clients(results: List[DiscoveryResult], original_client_id: str, session: Optional[Session] = None):
-    """
-    Wrapper to ingest discovery results for multiple clients.
-    Updates the original client plus two hardcoded demo clients.
-    """
-    
-    # Unique set of clients (to avoid double-ingesting if original is one of the demos)
-    target_clients = list(set([original_client_id]))
-    
-    print(f"DEBUG: Triggering ingestion for clients: {target_clients}")
-    
-    for client_id in target_clients:
-        try:
-            # We use a fresh nested session or similar if provided, but ingest_to_graph handles its own session if None
-            await ingest_to_graph(client_id=client_id, results=results, session=session)
-        except Exception as e:
-            logger.error(f"Failed to ingest for client {client_id}: {e}")
-            print(f"ERROR: Failed ingestion for {client_id}: {e}")
+def _result_to_dict(result: DiscoveryResult) -> dict:
+    """Serialize a DiscoveryResult to a JSON-serializable dict."""
+    return {
+        "source": result.source,
+        "nodes": [
+            {
+                "key": n.key,
+                "display_name": n.display_name,
+                "node_type": n.node_type,
+                "properties": n.properties,
+                "source_metadata": n.source_metadata,
+            }
+            for n in result.nodes
+        ],
+        "edges": [
+            {
+                "from_node_key": e.from_node_key,
+                "to_node_key": e.to_node_key,
+                "edge_type": e.edge_type,
+                "properties": e.properties,
+            }
+            for e in result.edges
+        ],
+        "metadata": result.metadata,
+    }
