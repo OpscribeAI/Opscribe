@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Send, Loader2, Bot, User, Database, History, X, PlusCircle, MessageSquare } from "lucide-react";
+import { Send, Loader2, Bot, User, History, X, PlusCircle, MessageSquare } from "lucide-react";
 import { api } from "../api/client";
 import type { Node, Edge } from "reactflow";
 import type { InfrastructureNodeData } from "../types/infrastructure";
@@ -288,21 +288,6 @@ export default function RAGChat({ clientId, graphId, nodes, edges, designName, o
                                 </span>
                             )}
                             <div className="whitespace-pre-wrap text-sm font-sans">{m.content}</div>
-                            {m.metadata && (m.metadata as any[]).length > 0 && (
-                                <div className="mt-4 pt-4 border-t border-gray-800">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1 mb-2">
-                                        <Database className="w-3 h-3" /> Sources
-                                    </span>
-                                    <div className="grid gap-2">
-                                        {(m.metadata as any[]).map((chunk, idx) => (
-                                            <div key={idx} className="bg-gray-950 p-2 rounded-lg border border-gray-800 text-[11px] text-gray-400">
-                                                <span className="text-blue-400 block mb-1">Source {idx + 1}</span>
-                                                {chunk.content.substring(0, 200)}...
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 ))}
