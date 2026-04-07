@@ -38,6 +38,7 @@ class RagQueryRequest(BaseModel):
     graph_id: Optional[UUID] = None
     query: str
     limit: int = 5
+    persona: str = "engineer" # "pm" or "engineer" 
 
 class RagQueryResponse(BaseModel):
     items: List[Dict[str, Any]]
@@ -125,7 +126,7 @@ def _handle_rag(request: RagQueryRequest, session: Session) -> RagQueryResponse:
             context_chunks.append(item.content)
 
         chat_service = ChatService()
-        answer = chat_service.generate_answer(request.query, context_chunks)
+        answer = chat_service.generate_answer(request.query, context_chunks, persona=request.persona) # ingest the persona based on selection
 
         return RagQueryResponse(items=formatted_results, answer=answer, route="rag")
     except Exception as e:
@@ -164,23 +165,38 @@ def _handle_traversal(
         tools = get_graph_traversal_tools(session, request.graph_id)
         tools_by_name = {t.name: t for t in tools}
 
+        if request.persona == "pm":
+            persona_instructions = (
+                "### PM PERSPECTIVE:\n"
+                "1. Focus on BUSINESS IMPACT and RISK. Explain things using analogies.\n"
+                "2. Avoid technical jargon. Explain how structural changes affect scoping and timelines.\n"
+                "3. Connect technical clusters to customer-facing capabilities.\n"
+            )
+        else:
+            persona_instructions = (
+                "### ENGINEER PERSPECTIVE:\n"
+                "1. Focus on TECHNICAL DEPTH and DEPENDENCIES. Use technical terms accurately.\n"
+                "2. Explain protocols, data consistency, and performance implications.\n"
+                "3. Provide direct technical insights into the connection architecture.\n"
+            )
+
         system_prompt = (
-            "You are the Opscribe Graph Traversal Agent.\n\n"
+            f"You are the Opscribe Graph Traversal Agent (Persona: {request.persona.upper()}).\n\n"
             "You have access to tools that let you walk the infrastructure architecture graph.\n"
             "Your job is to answer STRUCTURAL questions about the architecture:\n"
             "  - Dependencies (\"what does X depend on?\")\n"
             "  - Impact analysis (\"what breaks if X goes down?\")\n"
             "  - Path finding (\"how does X connect to Y?\")\n"
             "  - Neighbor discovery (\"what are the upstream/downstream services of X?\")\n\n"
+            f"{persona_instructions}\n"
             "### PROTOCOL:\n"
             "1. ALWAYS start by using `find_node_by_name` to resolve the component name.\n"
             "2. Then use the appropriate traversal tool based on the question.\n"
-            "3. Explain the results clearly using analogies when possible.\n"
-            "4. Connect technical findings to business impact.\n\n"
+            "3. Explain the results clearly.\n"
+            "4. Connect findings to the specific needs of your persona.\n\n"
             "### RULES:\n"
             "- You are READ-ONLY. You never modify the graph.\n"
-            "- If a node is not found, suggest similar names.\n"
-            "- Explain WHY the dependency/impact chain matters, not just WHAT it is.\n\n"
+            "- If a node is not found, suggest similar names.\n\n"
             "### CRITICAL TOOL BEHAVIOR:\n"
             "If you decide to invoke a tool, you MUST output ONLY the tool call. "
             "Do not provide any conversational text, explanations, or thoughts before calling the tool. "
