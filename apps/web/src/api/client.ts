@@ -136,10 +136,17 @@ export const api = {
     query: string,
     graphId?: string,
     limit: number = 5,
+    persona: string = "engineer"
   ): Promise<{ items: any[]; answer: string; route?: string }> {
     return request<{ items: any[]; answer: string; route?: string }>("rag/query", {
       method: "POST",
-      body: JSON.stringify({ tenant_id: tenantId, query, limit, ...(graphId ? { graph_id: graphId } : {}) }),
+      body: JSON.stringify({ 
+        tenant_id: tenantId, 
+        query, 
+        limit, 
+        persona,
+        ...(graphId ? { graph_id: graphId } : {}) 
+      }),
     });
   },
 };

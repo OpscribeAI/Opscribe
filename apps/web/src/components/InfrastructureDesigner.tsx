@@ -33,7 +33,7 @@ import type {
   InfrastructureNodeData,
   InfrastructureDesign,
 } from "../types/infrastructure";
-import { getCategoryColor, nodeTemplates } from "../data/nodeTemplates";
+import { getCategoryColor, nodeTemplates, getAnalogy } from "../data/nodeTemplates";
 import { api } from "../api/client";
 
 const nodeTypes = {
@@ -132,6 +132,7 @@ export default function InfrastructureDesigner({
 
   // Stores the anonymous session ID for RAG context tracking
   const [clientId, setClientId] = useState<string>("");
+  const [persona, setPersona] = useState<"pm" | "engineer">("engineer");
 
   useEffect(() => {
     // Fetch the current authenticated user session to track RAG queries and metadata
@@ -339,7 +340,7 @@ export default function InfrastructureDesigner({
 
   return (
     <div className="flex h-screen bg-gray-950">
-      <NodePalette onDragStart={onDragStart} />
+      <NodePalette onDragStart={onDragStart} persona={persona} />
 
       <div className="flex-1 relative" ref={reactFlowWrapper}>
         {loadingVisualization && (
@@ -348,7 +349,17 @@ export default function InfrastructureDesigner({
           </div>
         )}
         <ReactFlow
-          nodes={nodes}
+          nodes={nodes.map(n => ({
+            ...n,
+            data: {
+              ...n.data,
+              label: persona === "pm" ? getAnalogy(n.data.label) : n.data.label,
+              persona,
+              stability: (n.data as any).stability || 85,
+              tech_debt: (n.data as any).tech_debt || 20,
+              criticality: (n.data as any).criticality || "medium"
+            }
+          }))}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -392,6 +403,7 @@ export default function InfrastructureDesigner({
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
+          <div className="h-8 w-px bg-gray-700 mx-1"></div>
           <div>
             <input
               type="text"
@@ -402,6 +414,29 @@ export default function InfrastructureDesigner({
             <p className="text-xs text-gray-400">
               {nodes.length} nodes · {edges.length} connections
             </p>
+          </div>
+          <div className="h-8 w-px bg-gray-700 mx-1"></div>
+          <div className="flex bg-gray-900 rounded-md p-1 border border-gray-700">
+            <button
+              onClick={() => setPersona("engineer")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                persona === "engineer"
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              Engineer
+            </button>
+            <button
+              onClick={() => setPersona("pm")}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-all ${
+                persona === "pm"
+                  ? "bg-purple-600 text-white shadow-lg"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              Product Manager
+            </button>
           </div>
         </div>
       </div>
@@ -414,17 +449,40 @@ export default function InfrastructureDesigner({
         <RAGChat
           clientId={clientId}
           graphId={design?.id || ""}
-          nodes={nodes}
+          nodes={nodes.map(n => ({
+            ...n,
+            data: {
+              ...n.data,
+              label: persona === "pm" ? getAnalogy(n.data.label) : n.data.label,
+              persona,
+              stability: (n.data as any).stability || 85,
+              tech_debt: (n.data as any).tech_debt || 20,
+              criticality: (n.data as any).criticality || "medium"
+            }
+          }))}
           edges={edges}
           designName={designName}
           onClose={() => {}}
+          persona={persona}
+          onPersonaChange={setPersona}
         />
       ) : (
         <PropertiesPanel
-          selectedNode={selectedNode}
+          selectedNode={{
+            ...selectedNode,
+            data: {
+              ...selectedNode.data,
+              label: persona === "pm" ? getAnalogy(selectedNode.data.label) : selectedNode.data.label,
+              persona,
+              stability: (selectedNode.data as any).stability || 85,
+              tech_debt: (selectedNode.data as any).tech_debt || 20,
+              criticality: (selectedNode.data as any).criticality || "medium"
+            }
+          }}
           onUpdateNode={onUpdateNode}
           onDeleteNode={onDeleteNode}
           onClose={onCloseProperties}
+          persona={persona}
         />
       )}
     </div>

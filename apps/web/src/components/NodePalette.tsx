@@ -12,6 +12,7 @@ import {
   categories,
   nodeTemplates,
   getCategoryColor,
+  getAnalogy,
 } from "../data/nodeTemplates.ts";
 import type { NodeCategory, NodeTemplate } from "../types/infrastructure.ts";
 
@@ -19,9 +20,11 @@ type IconName = keyof typeof Icons;
 
 interface NodePaletteProps {
   onDragStart: (event: React.DragEvent, template: NodeTemplate) => void;
+  persona: "pm" | "engineer";
 }
 
-export default function NodePalette({ onDragStart }: NodePaletteProps) {
+export default function NodePalette({ onDragStart, persona }: NodePaletteProps) {
+  const isPM = persona === "pm";
   const [expandedCategories, setExpandedCategories] = useState<
     Set<NodeCategory>
   >(new Set(categories.map((c) => c.id)));
@@ -53,8 +56,10 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
 
   return (
     <div className="w-64 bg-gray-900 border-r border-gray-700 flex flex-col h-full">
-      <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white mb-3">Components</h2>
+      <div className={`p-4 border-b border-gray-700 ${isPM ? 'bg-gray-900/80 backdrop-blur' : ''}`}>
+        <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">
+            {isPM ? "Strategic Components" : "Infrastructure Nodes"}
+        </h2>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
@@ -101,8 +106,8 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
                     <CategoryIcon size={14} style={{ color: category.color }} />
                   )}
                 </div>
-                <span className="text-sm font-medium text-gray-200">
-                  {category.label}
+                <span className={`font-medium transition-colors ${isPM ? 'text-xs text-blue-400 uppercase tracking-widest font-black' : 'text-sm text-gray-200'}`}>
+                  {isPM ? getAnalogy(category.label) : category.label}
                 </span>
                 <span className="ml-auto text-xs text-gray-500">
                   {templates.length}
@@ -126,17 +131,22 @@ export default function NodePalette({ onDragStart }: NodePaletteProps) {
                         key={template.id}
                         draggable
                         onDragStart={(e) => onDragStart(e, template)}
-                        className="flex items-center gap-2 p-2 rounded-md bg-gray-800 border border-gray-700 cursor-grab hover:border-gray-500 hover:bg-gray-750 transition-all group active:cursor-grabbing"
+                        className={`
+                          flex items-center gap-2 p-2 cursor-grab transition-all group active:cursor-grabbing border
+                          ${isPM 
+                            ? "rounded-xl glassmorphism border-white/5 hover:border-blue-500/30 hover:bg-blue-500/5 shadow-lg" 
+                            : "rounded-md bg-gray-800 border-gray-700 hover:border-gray-500 hover:bg-gray-750"}
+                        `}
                       >
                         <GripVertical className="w-3 h-3 text-gray-500 group-hover:text-gray-400" />
                         <div
-                          className="p-1 rounded"
-                          style={{ backgroundColor: `${color}15` }}
+                          className={`p-1.5 rounded transition-colors ${isPM ? 'shadow-inner bg-black/20' : ''}`}
+                          style={{ backgroundColor: isPM ? undefined : `${color}15` }}
                         >
-                          {NodeIcon && <NodeIcon size={14} style={{ color }} />}
+                          {NodeIcon && <NodeIcon size={isPM ? 16 : 14} style={{ color }} />}
                         </div>
-                        <span className="text-sm text-gray-300 truncate">
-                          {template.label}
+                        <span className={`truncate ${isPM ? 'text-xs font-bold text-gray-200 tracking-tight' : 'text-sm text-gray-300'}`}>
+                          {isPM ? getAnalogy(template.label) : template.label}
                         </span>
                       </div>
                     );

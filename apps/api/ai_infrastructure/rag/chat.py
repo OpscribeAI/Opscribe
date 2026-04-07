@@ -16,12 +16,14 @@ class ChatService:
         else:
             self.llm = None
 
-    def generate_answer(self, query: str, context_chunks: List[str], persona: str = "engineer") -> str:
+    def generate_answer(self, query: str, context_chunks: List[str], persona: str = "engineer") -> str: # tajes in person know waht to generate
         if not self.llm:
             return "Error: GROQ_API_KEY not found in environment variables."
 
         context_text = "\n\n---\n\n".join(context_chunks)
-        
+
+
+        # if persona is pm then generate pm response else engineer response *CHAT CONTEXT
         if persona == "pm":
             system_msg = """You are the **Opscribe PM Guide & Strategic Architect**.
 

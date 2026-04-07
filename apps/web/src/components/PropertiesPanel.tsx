@@ -21,6 +21,7 @@ interface PropertiesPanelProps {
   onUpdateNode: (nodeId: string, data: Partial<InfrastructureNodeData>) => void;
   onDeleteNode: (nodeId: string) => void;
   onClose: () => void;
+  persona: "pm" | "engineer";
 }
 
 export default function PropertiesPanel({
@@ -28,6 +29,7 @@ export default function PropertiesPanel({
   onUpdateNode,
   onDeleteNode,
   onClose,
+  persona,
 }: PropertiesPanelProps) {
   if (!selectedNode) {
     return (
@@ -59,6 +61,55 @@ export default function PropertiesPanel({
   };
 
   const renderCategoryFields = () => {
+    if (persona === "pm") {
+      return (
+        <>
+          <FormField label="Strategic Impact">
+            <select
+              value={(data as any).strategicImpact || "medium"}
+              onChange={(e) => handleChange("strategicImpact", e.target.value)}
+              className="form-select"
+            >
+              <option value="critical">🔥 Critical (Mission-Essential)</option>
+              <option value="high">✨ High (Revenue-Driving)</option>
+              <option value="medium">⚡ Medium (Supporting)</option>
+              <option value="low">☁️ Low (Non-Essential)</option>
+            </select>
+          </FormField>
+
+          <FormField label="Cost Estimate">
+             <select
+              value={(data as any).costEstimate || "$$"}
+              onChange={(e) => handleChange("costEstimate", e.target.value)}
+              className="form-select"
+            >
+              <option value="$">$ (Inexpensive)</option>
+              <option value="$$">$$ (Standard)</option>
+              <option value="$$$">$$$ (Premium)</option>
+              <option value="$$$$">$$$$ (Enterprise Grade)</option>
+            </select>
+          </FormField>
+
+          <FormField label="Business Summary">
+            <textarea
+              rows={4}
+              value={(data as any).businessSummary || ""}
+              onChange={(e) => handleChange("businessSummary", e.target.value)}
+              placeholder="Explain how this component provides value to our customers..."
+              className="form-input"
+            />
+          </FormField>
+          
+          <div className="p-3 bg-purple-900/20 border border-purple-800/50 rounded-lg">
+            <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1">PM Insight</p>
+            <p className="text-xs text-purple-200/80 leading-relaxed italic">
+              "This component represents the core engine of our service. Outages here directly impact customer signups."
+            </p>
+          </div>
+        </>
+      );
+    }
+
     switch (data.category as NodeCategory) {
       case "database":
         return (
