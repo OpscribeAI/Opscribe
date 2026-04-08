@@ -17,6 +17,13 @@ export interface BaseNodeData {
   category: NodeCategory;
   icon: string;
   description?: string;
+  persona?: "pm" | "engineer";
+  stability?: number;
+  tech_debt?: number;
+  criticality?: "low" | "medium" | "high";
+  strategicImpact?: string;
+  costEstimate?: string;
+  businessSummary?: string;
 }
 
 // Database node speific information

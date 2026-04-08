@@ -329,3 +329,40 @@ export const nodeTemplates: NodeTemplate[] = [
     },
   },
 ];
+export const getAnalogy = (label: string) => {
+  const analogies: Record<string, string> = {
+    // Categories
+    "Databases": "Record Keeping",
+    "Compute": "Power House",
+    "Storage": "Digital Warehouse",
+    "Networking": "Traffic Control",
+    "Security": "Gatekeepers",
+    "Messaging": "Communication Hub",
+    
+    // Nodes
+    "SQL Database": "Structured Records",
+    "NoSQL Database": "Flexible Data Store",
+    "Data Warehouse": "Historic Analysis Hub",
+    "Cache": "Fast-Lane Data",
+    "Virtual Machine": "Cloud Server",
+    "Container": "App Packet",
+    "Serverless Function": "On-Demand Logic",
+    "Kubernetes Cluster": "Server Fleet Manager",
+    "Block Storage": "Server Hard Drive",
+    "Object Storage": "Digital Warehouse",
+    "File Storage": "Shared Drive",
+    "VPC": "Private Network Perimeter",
+    "Load Balancer": "Traffic Cop",
+    "CDN": "Global Content Hub",
+    "DNS": "Web Address Book",
+    "Firewall": "Security Gate",
+    "WAF": "Web Protection Guard",
+    "IAM": "Access Controller",
+    "Secrets Manager": "Digital Safety Vault",
+    "Message Queue": "Task Conveyor Belt",
+    "Pub/Sub Topic": "Broadcast Channel",
+    "Event Stream": "Continuous Data River",
+    "Event Bus": "Communication Backbone",
+  };
+  return analogies[label] || label;
+};
