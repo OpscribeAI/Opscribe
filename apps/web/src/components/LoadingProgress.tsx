@@ -1,4 +1,4 @@
-import { Zap, Loader2 } from "lucide-react";
+import { Zap } from "lucide-react";
 
 interface LoadingProgressProps {
   isVisible: boolean;
