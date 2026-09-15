@@ -20,7 +20,7 @@ interface RAGChatProps {
  * It automatically syncs canvas changes and re-ingests data before each query to ensure
  * the LLM always has the most up-to-date context.
  */
-export default function RAGChat({ clientId, graphId, nodes, edges, designName, onClose }: RAGChatProps) {
+export default function RAGChat({ clientId, graphId, nodes, edges, designName }: RAGChatProps) {
     const [query, setQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [messages, setMessages] = useState<Array<{ role: "user" | "bot"; content: string; metadata?: any; route?: string }>>([

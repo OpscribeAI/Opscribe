@@ -9,7 +9,7 @@ import type {
   GraphVisualization,
 } from "../types/apiFormat";
 
-const BASE =
+export const API_BASE =
   (import.meta as unknown as { env: { VITE_API_URL?: string } }).env
     ?.VITE_API_URL ?? "/api";
 
@@ -36,7 +36,7 @@ async function request<T>(
   const { parseJson = true, ...init } = options;
   const url = path.startsWith("http")
     ? path
-    : `${BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
+    : `${API_BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
   const res = await authFetch(url, {
     ...init,
     credentials: "include",

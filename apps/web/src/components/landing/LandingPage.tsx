@@ -11,7 +11,6 @@ import {
   Quote,
   Search,
   Zap,
-  Shield,
   Activity
 } from "lucide-react";
 
@@ -92,12 +91,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onLogin }) => {
             Start Building Free
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </button>
-          <button 
-            onClick={onLogin}
+          <a
+            href="/demo"
             className="px-10 py-5 rounded-2xl glass border border-white/10 font-bold text-lg hover:bg-white/5 transition-all active:scale-95"
           >
             View Live Demo
-          </button>
+          </a>
         </div>
       </section>
 
@@ -282,13 +281,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onLogin }) => {
               a: "Yes. Our IaC Sync engine analyzes your logical graph and can generate fully documented Terraform, Pulumi, or K8s manifests directly."
             }
           ].map((f, i) => (
-            <div key={i} className="faq-item reveal group cursor-pointer" onClick={() => setActiveFaq(activeFaq === i ? null : i)}>
+            <div key={i} className="faq-item reveal group">
+              <button type="button" className="w-full text-left" aria-expanded={activeFaq === i} aria-controls={`faq-answer-${i}`} onClick={() => setActiveFaq(activeFaq === i ? null : i)}>
               <div className="flex justify-between items-center gap-8 py-2">
                 <h4 className="text-xl font-bold group-hover:text-blue-400 transition-colors">{f.q}</h4>
                 <ChevronDown className={`w-6 h-6 text-slate-500 transition-transform duration-300 ${activeFaq === i ? 'rotate-180 text-blue-400' : ''}`} />
               </div>
+              </button>
               {activeFaq === i && (
-                <p className="text-slate-400 mt-4 leading-relaxed animate-fade-in-up">{f.a}</p>
+                <p id={`faq-answer-${i}`} className="text-slate-400 mt-4 leading-relaxed animate-fade-in-up">{f.a}</p>
               )}
             </div>
           ))}
@@ -307,38 +308,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onLogin }) => {
             </div>
             <p className="text-slate-500 leading-relaxed mb-8">The first LLM-powered intelligence layer for enterprise infrastructure. Map, understand, and scale your cloud without the headache.</p>
             <div className="flex gap-4">
-               <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors cursor-pointer text-slate-500 hover:text-white"><Zap className="w-5 h-5" /></div>
-               <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors cursor-pointer text-slate-500 hover:text-white"><Layers className="w-5 h-5" /></div>
+               <a href="/demo" aria-label="Explore live demo" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-slate-500 hover:text-white"><Zap className="w-5 h-5" /></a>
+               <a href="/docs" aria-label="Read documentation" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors text-slate-500 hover:text-white"><Layers className="w-5 h-5" /></a>
             </div>
           </div>
           
           <div>
             <h5 className="font-black uppercase tracking-widest text-xs text-white mb-8">Product</h5>
             <ul className="space-y-4 text-sm font-bold text-slate-500 uppercase tracking-widest">
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Agentic Dashboard</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">RAG Intelligence</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Slide Export</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">IaC Sync</a></li>
+              <li><a href="/demo" className="hover:text-blue-400 transition-colors italic">Agentic Dashboard</a></li>
+              <li><a href="/docs#intelligence" className="hover:text-blue-400 transition-colors italic">RAG Intelligence</a></li>
+              <li><a href="/docs#exports" className="hover:text-blue-400 transition-colors italic">Diagram Export</a></li>
+              <li><a href="/docs#exports" className="hover:text-blue-400 transition-colors italic">Export Formats</a></li>
             </ul>
           </div>
 
           <div>
             <h5 className="font-black uppercase tracking-widest text-xs text-white mb-8">Resources</h5>
             <ul className="space-y-4 text-sm font-bold text-slate-500 uppercase tracking-widest">
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Documentation</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">API Reference</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Cloud Status</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Security Library</a></li>
+              <li><a href="/docs" className="hover:text-blue-400 transition-colors italic">Documentation</a></li>
+              <li><a href="/api/docs" className="hover:text-blue-400 transition-colors italic">API Reference</a></li>
+              <li><a href="/status" className="hover:text-blue-400 transition-colors italic">Cloud Status</a></li>
+              <li><a href="/security" className="hover:text-blue-400 transition-colors italic">Security Library</a></li>
             </ul>
           </div>
 
           <div>
             <h5 className="font-black uppercase tracking-widest text-xs text-white mb-8">Company</h5>
             <ul className="space-y-4 text-sm font-bold text-slate-500 uppercase tracking-widest">
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">About Us</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Careers</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Blog</a></li>
-              <li><a href="#" className="hover:text-blue-400 transition-colors italic">Privacy Policy</a></li>
+              <li><a href="/#mission" className="hover:text-blue-400 transition-colors italic">About Us</a></li>
+              <li><a href="/privacy" className="hover:text-blue-400 transition-colors italic">Data &amp; Privacy</a></li>
             </ul>
           </div>
         </div>
@@ -346,9 +345,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onLogin }) => {
         <div className="max-w-7xl mx-auto border-t border-white/5 mt-32 pt-12 flex flex-col md:flex-row justify-between items-center gap-8">
            <div className="text-slate-600 text-[10px] uppercase font-black tracking-[0.4em]">© 2026 Opscribe Inc. Engineered in the future.</div>
            <div className="flex gap-8 text-[10px] uppercase font-black tracking-widest text-slate-600">
-             <a href="#" className="hover:text-white">Twitter</a>
-             <a href="#" className="hover:text-white">Discord</a>
-             <a href="#" className="hover:text-white">LinkedIn</a>
+             <a href="/demo" className="hover:text-white">Live Demo</a>
+             <a href="/docs" className="hover:text-white">Documentation</a>
+             <a href="/status" className="hover:text-white">Service Status</a>
            </div>
         </div>
       </footer>

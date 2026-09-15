@@ -17,8 +17,22 @@ const API_BASE = "/api";
 type View = "dashboard" | "designer";
 
 function App() {
-  const { isLoading, isAuthenticated, loginWithRedirect, getAccessTokenSilently, user, logout } = useAuth0();
+  const { isLoading, isAuthenticated, loginWithRedirect, getAccessTokenSilently, user, logout, error: providerError } = useAuth0();
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [tokenReady, setTokenReady] = useState(false);
+
+  const startLogin = useCallback((signup = false) => {
+    setLoginError(null);
+    void loginWithRedirect(signup ? { authorizationParams: { screen_hint: 'signup' } } : undefined)
+      .catch(() => setLoginError('Sign-in could not start. Please try again, or explore the live demo.'));
+  }, [loginWithRedirect]);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && new URLSearchParams(window.location.search).get('signup') === '1') {
+      window.history.replaceState({}, '', '/');
+      startLogin(true);
+    }
+  }, [isLoading, isAuthenticated, startLogin]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,7 +41,7 @@ function App() {
           setApiToken(token);
           setTokenReady(true);
         })
-        .catch(err => console.error("Auth0 Token Error:", err));
+        .catch(() => { setLoginError('Unable to finish sign-in. Please retry login.'); setTokenReady(true); });
     } else if (!isLoading) {
       setTokenReady(true);
     }
@@ -63,11 +77,11 @@ function App() {
     updateDesign,
     deleteDesign,
     getDesign,
-  } = useInfrastructureDesigns(tokenReady, true); // Always poll while in app
+  } = useInfrastructureDesigns(tokenReady && isAuthenticated, isAuthenticated);
 
   // Fetch connection status
   const fetchConnections = useCallback(() => {
-    if (!tokenReady) return;
+    if (!tokenReady || !isAuthenticated) return;
     fetch(`${API_BASE}/clients/me`)
       .then(r => r.json())
       .then(d => {
@@ -85,7 +99,7 @@ function App() {
         setAwsConnected(false);
         setGithubConnected(false);
       });
-  }, [tokenReady]);
+  }, [tokenReady, isAuthenticated]);
 
   useEffect(() => {
     fetchConnections();
@@ -135,6 +149,10 @@ function App() {
 
   const activeDesign = activeDesignId ? getDesign(activeDesignId) : null;
 
+  if ((providerError || loginError) && !isLoading) {
+    return <div className="min-h-screen bg-slate-950 p-10 text-white"><h1 className="text-2xl font-bold">Sign-in needs attention</h1><p role="alert" className="my-5">{loginError || 'Your sign-in could not be completed. Please try again.'}</p><button className="rounded-lg bg-blue-600 px-5 py-3" onClick={() => startLogin()}>Retry login</button><a href="/demo" className="ml-6 text-blue-300">Explore the live demo</a><a href="/" className="ml-6 text-blue-300">Back to home</a></div>;
+  }
+
   if (isLoading || !tokenReady) {
     return (
       <div className="min-h-screen bg-[#0A0D14] flex items-center justify-center text-gray-400 font-mono text-sm">
@@ -146,8 +164,8 @@ function App() {
   if (!isAuthenticated) {
     return (
       <LandingPage
-        onLaunch={() => loginWithRedirect({ authorizationParams: { screen_hint: "signup" } })}
-        onLogin={() => loginWithRedirect()}
+        onLaunch={() => startLogin(true)}
+        onLogin={() => startLogin()}
       />
     );
   }
